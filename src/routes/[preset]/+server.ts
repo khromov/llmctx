@@ -11,6 +11,7 @@ import { getPresetFilePath, readCachedFile, isFileStale } from '$lib/fileCache'
 
 // Valid virtual presets that aren't in the presets object
 const VIRTUAL_DISTILLED_PRESETS = ['svelte-distilled', 'sveltekit-distilled']
+const VIRTUAL_SUMMARY_PRESETS = ['summary']
 
 /**
  * Trigger a background update for a preset without awaiting the result
@@ -41,7 +42,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 	// Validate all preset names first
 	const invalidPresets = presetNames.filter(
-		(name) => !(name in presets) && !VIRTUAL_DISTILLED_PRESETS.includes(name)
+		(name) =>
+			!(name in presets) &&
+			!VIRTUAL_DISTILLED_PRESETS.includes(name) &&
+			!VIRTUAL_SUMMARY_PRESETS.includes(name)
 	)
 
 	if (invalidPresets.length > 0) {
@@ -60,8 +64,27 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 			let content
 
+			// Handle summary presets
+			if (VIRTUAL_SUMMARY_PRESETS.includes(presetKey)) {
+				let filename
+				if (version) {
+					// Use specific version if provided
+					filename = `outputs/svelte-summary-${version}.txt`
+				} else {
+					// Use latest version otherwise
+					filename = `outputs/svelte-summary-latest.txt`
+				}
+
+				try {
+					content = await readFile(filename, 'utf-8')
+				} catch (e) {
+					throw new Error(
+						`Failed to read summary content: ${e instanceof Error ? e.message : String(e)}. Make sure to run the summary generation process first.`
+					)
+				}
+			}
 			// Handle both regular distilled presets and virtual ones
-			if (presets[presetKey]?.distilled || VIRTUAL_DISTILLED_PRESETS.includes(presetKey)) {
+			else if (presets[presetKey]?.distilled || VIRTUAL_DISTILLED_PRESETS.includes(presetKey)) {
 				// For virtual presets, use their basename directly
 				const baseFilename = presets[presetKey]?.distilledFilenameBase || presetKey
 				let filename
@@ -108,10 +131,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 				throw new Error(`No content found for ${presetKey}`)
 			}
 
-			// Add the prompt if it exists and we're not using a distilled preset
-			// (distilled presets already have the prompt added)
+			// Add the prompt if it exists and we're not using a distilled or summary preset
+			// (distilled presets already have the prompt added, summary presets don't need prompts)
 			return !presets[presetKey]?.distilled &&
 				!VIRTUAL_DISTILLED_PRESETS.includes(presetKey) &&
+				!VIRTUAL_SUMMARY_PRESETS.includes(presetKey) &&
 				presets[presetKey]?.prompt
 				? `${content}\n\nInstructions for LLMs: <SYSTEM>${presets[presetKey].prompt}</SYSTEM>`
 				: content
