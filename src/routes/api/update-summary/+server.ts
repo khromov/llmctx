@@ -165,16 +165,16 @@ export const GET: RequestHandler = async ({ url }) => {
 		).padStart(2, '0')}`
 
 		// Summary content file paths
-		const latestFilename = `outputs/svelte-summary-latest.txt`
-		const datedFilename = `outputs/svelte-summary-${dateStr}.txt`
+		const latestFilename = `outputs/svelte-summary-latest.md`
+		const datedFilename = `outputs/svelte-summary-${dateStr}.md`
 
 		// Svelte content file paths
-		const svelteLatestFilename = `outputs/svelte-summary-svelte-latest.txt`
-		const svelteDatedFilename = `outputs/svelte-summary-svelte-${dateStr}.txt`
+		const svelteLatestFilename = `outputs/svelte-summary-svelte-latest.md`
+		const svelteDatedFilename = `outputs/svelte-summary-svelte-${dateStr}.md`
 
 		// SvelteKit content file paths
-		const svelteKitLatestFilename = `outputs/svelte-summary-sveltekit-latest.txt`
-		const svelteKitDatedFilename = `outputs/svelte-summary-sveltekit-${dateStr}.txt`
+		const svelteKitLatestFilename = `outputs/svelte-summary-sveltekit-latest.md`
+		const svelteKitDatedFilename = `outputs/svelte-summary-sveltekit-${dateStr}.md`
 
 		// Debug file path
 		const debugFilename = `outputs/svelte-summary-debug.json`

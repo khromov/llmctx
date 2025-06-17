@@ -4,7 +4,7 @@ import { existsSync } from 'fs'
 import type { RequestHandler } from './$types'
 
 export const GET: RequestHandler = async () => {
-	const summaryPath = 'outputs/svelte-summary-latest.txt'
+	const summaryPath = 'outputs/svelte-summary-latest.md'
 
 	try {
 		if (!existsSync(summaryPath)) {

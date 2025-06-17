@@ -69,10 +69,10 @@ export const GET: RequestHandler = async ({ params, url }) => {
 				let filename
 				if (version) {
 					// Use specific version if provided
-					filename = `outputs/svelte-summary-${version}.txt`
+					filename = `outputs/svelte-summary-${version}.md`
 				} else {
 					// Use latest version otherwise
-					filename = `outputs/svelte-summary-latest.txt`
+					filename = `outputs/svelte-summary-latest.md`
 				}
 
 				try {
