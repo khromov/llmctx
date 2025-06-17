@@ -4,7 +4,7 @@ import { dev } from '$app/environment'
 import { presets } from '$lib/presets'
 import { fetchMarkdownFiles, minimizeContent } from '$lib/fetchMarkdown'
 import type { RequestHandler } from './$types'
-import { AnthropicProvider, type AnthropicBatchRequest } from '$lib/anthropic'
+import { AnthropicProvider, type BatchProcessingOptions } from '$lib/anthropic'
 import { writeAtomicFile } from '$lib/fileCache'
 
 const SUMMARY_PROMPT = `
@@ -110,118 +110,34 @@ export const GET: RequestHandler = async ({ url }) => {
 		// Initialize Anthropic client
 		const anthropic = new AnthropicProvider('claude-sonnet-4-20250514')
 
-		// Create debug structure to store inputs and outputs
-		const debugData = {
-			timestamp: new Date().toISOString(),
-			model: anthropic.getModelIdentifier(),
-			totalFiles: originalFileCount,
-			processedFiles: filesToProcess.length,
-			shortFilesRemoved: originalFileCount - filesToProcess.length,
-			minimizeApplied: !!sourcePreset.minimize,
-			requests: [] as Array<{
-				index: number
-				path: string
-				originalContent: string
-				fullPrompt: string
-				response?: string
-				error?: string
-			}>
+		// Process files using shared batch processing function
+		const options: BatchProcessingOptions = {
+			maxTokens: 256, // Much smaller since we only need short summaries
+			temperature: 0
 		}
 
-		// Prepare batch requests
-		const batchRequests: AnthropicBatchRequest[] = filesToProcess.map((fileObj, index) => {
-			const content = typeof fileObj === 'string' ? fileObj : fileObj.content
-			const fullPrompt = SUMMARY_PROMPT + content
-
-			// Store input for debugging
-			debugData.requests.push({
+		const resultProcessor = (result: any, fileObj: string | { path: string; content: string }, index: number) => {
+			const outputSummary = result.result.message.content[0].text.trim()
+			return {
 				index,
 				path: typeof fileObj === 'string' ? 'unknown' : fileObj.path,
-				originalContent: typeof fileObj === 'string' ? fileObj : fileObj.content,
-				fullPrompt
-			})
-
-			return {
-				custom_id: `file-${index}`,
-				params: {
-					model: anthropic.getModelIdentifier(),
-					max_tokens: 256, // Much smaller since we only need short summaries
-					messages: [
-						{
-							role: 'user',
-							content: fullPrompt
-						}
-					],
-					temperature: 0 // Low temperature for consistent results
-				}
-			}
-		})
-
-		// Create batch
-		const batchResponse = await anthropic.createBatch(batchRequests)
-
-		// Poll for completion
-		let batchStatus = await anthropic.getBatchStatus(batchResponse.id)
-
-		while (batchStatus.processing_status === 'in_progress') {
-			await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds before polling again
-			batchStatus = await anthropic.getBatchStatus(batchResponse.id)
-
-			if (dev) {
-				console.log(
-					`Batch status: ${batchStatus.processing_status}, Succeeded: ${batchStatus.request_counts.succeeded}, Processing: ${batchStatus.request_counts.processing}`
-				)
+				summary: outputSummary
 			}
 		}
 
-		// Get results
-		if (!batchStatus.results_url) {
-			throw error(500, 'Batch completed but no results URL available')
-		}
-
-		const results = await anthropic.getBatchResults(batchStatus.results_url)
-
-		// Process results
-		const processedResults = results
-			.filter((result) => result.result.type === 'succeeded')
-			.map((result) => {
-				const index = parseInt(result.custom_id.split('-')[1])
-				const fileObj = filesToProcess[index]
-
-				if (result.result.type !== 'succeeded' || !result.result.message) {
-					// Update debug data with error
-					const debugEntry = debugData.requests.find((r) => r.index === index)
-					if (debugEntry) {
-						debugEntry.error = result.result.error?.message || 'Failed or no message'
-					}
-
-					return {
-						index,
-						path: typeof fileObj === 'string' ? 'unknown' : fileObj.path,
-						summary: '',
-						error: 'Failed or no message'
-					}
-				}
-
-				const outputSummary = result.result.message.content[0].text.trim()
-
-				// Update debug data with response
-				const debugEntry = debugData.requests.find((r) => r.index === index)
-				if (debugEntry) {
-					debugEntry.response = outputSummary
-				}
-
-				return {
-					index,
-					path: typeof fileObj === 'string' ? 'unknown' : fileObj.path,
-					summary: outputSummary
-				}
-			})
+		const { debugData, processedResults } = await anthropic.processBatchWithFiles(
+			filesToProcess,
+			SUMMARY_PROMPT,
+			options,
+			originalFileCount,
+			!!sourcePreset.minimize,
+			resultProcessor
+		)
 
 		// Sort by index to maintain original order
 		processedResults.sort((a, b) => a.index - b.index)
 
-		// Filter successful responses
+		// Filter successful responses (summary should always exist due to our result processor)
 		const successfulResults = processedResults.filter((result) => result.summary)
 
 		// Split results into Svelte and SvelteKit categories
@@ -281,7 +197,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			shortFilesRemoved: originalFileCount - filesToProcess.length,
 			filesProcessed: filesToProcess.length,
 			minimizeApplied: !!sourcePreset.minimize,
-			resultsReceived: results.length,
+			resultsReceived: processedResults.length,
 			successfulResults: successfulResults.length,
 			svelteResults: svelteResults.length,
 			svelteKitResults: svelteKitResults.length,
