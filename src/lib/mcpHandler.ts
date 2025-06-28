@@ -163,7 +163,11 @@ export const getDocumentationHandler = async ({ section }: { section: string | s
 		let sections: string[]
 		if (Array.isArray(section)) {
 			sections = section
-		} else if (typeof section === 'string' && section.trim().startsWith('[') && section.trim().endsWith(']')) {
+		} else if (
+			typeof section === 'string' &&
+			section.trim().startsWith('[') &&
+			section.trim().endsWith(']')
+		) {
 			// Try to parse JSON string array
 			try {
 				const parsed = JSON.parse(section)
