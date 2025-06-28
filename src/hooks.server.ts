@@ -1,6 +1,8 @@
 import { sequence } from '@sveltejs/kit/hooks'
-import { type Handle } from '@sveltejs/kit'
+import { type Handle, type ServerInit } from '@sveltejs/kit'
 import { building } from '$app/environment'
+import { schedulerService } from '$lib/server/schedulerService'
+import { logAlways, logErrorAlways } from '$lib/log'
 
 const headers: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event)
@@ -21,14 +23,14 @@ const logger: Handle = async ({ event, resolve }) => {
 		try {
 			ip = event.request.headers.get('x-forwarded-for') || event.getClientAddress()
 		} catch (e) {
-			console.error('Could not get client IP address:', e)
+			logErrorAlways('Could not get client IP address:', e)
 		}
 	}
 
 	const date = new Date(requestStartTime)
 	const wlz = (num: number) => (num < 10 ? `0${num}` : num)
 
-	console.log(
+	logAlways(
 		`${wlz(date.getHours())}:${wlz(date.getMinutes())}:${wlz(date.getSeconds())}`,
 		`[${ip}]`,
 		event.request.method,
@@ -40,3 +42,15 @@ const logger: Handle = async ({ event, resolve }) => {
 }
 
 export const handle: Handle = sequence(logger, headers)
+
+export const init: ServerInit = async () => {
+	logAlways('Server initializing...')
+
+	// Initialize the background scheduler
+	try {
+		await schedulerService.init()
+		logAlways('Background scheduler initialized successfully')
+	} catch (error) {
+		logErrorAlways('Failed to initialize background scheduler:', error)
+	}
+}

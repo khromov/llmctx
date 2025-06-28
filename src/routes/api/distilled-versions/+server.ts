@@ -1,7 +1,7 @@
-import { json } from '@sveltejs/kit'
-import { readdir, stat } from 'fs/promises'
-import { existsSync } from 'fs'
+import { json, error } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
+import { PresetDbService } from '$lib/server/presetDb'
+import { logErrorAlways } from '$lib/log'
 
 // Valid basenames for distilled content
 const VALID_DISTILLED_BASENAMES = [
@@ -11,18 +11,23 @@ const VALID_DISTILLED_BASENAMES = [
 ]
 
 /**
- * Get file size in KB
+ * Transform database distillation to distilled version format
  */
-async function getFileSizeKb(filePath: string): Promise<number> {
-	try {
-		if (existsSync(filePath)) {
-			const stats = await stat(filePath)
-			return Math.floor(stats.size / 1024)
-		}
-		return 0
-	} catch (e) {
-		console.error(`Error getting file size for ${filePath}:`, e)
-		return 0
+function transformDbDistillationToVersion(dbDistillation: any, presetKey: string) {
+	// Handle date format - version could be 'latest' or '2024-01-15'
+	const date =
+		dbDistillation.version === 'latest'
+			? new Date(dbDistillation.created_at).toISOString().split('T')[0]
+			: dbDistillation.version
+
+	// Generate filename from preset key and date
+	const filename = `${presetKey}-${date}.md`
+
+	return {
+		filename,
+		date,
+		path: `/api/preset-content/${presetKey}/${dbDistillation.version}`,
+		sizeKb: dbDistillation.size_kb
 	}
 }
 
@@ -36,42 +41,22 @@ export const GET: RequestHandler = async ({ url }) => {
 			return json([])
 		}
 
-		// Read the outputs directory
-		const files = await readdir('outputs')
+		// Get all versions from database
+		const dbDistillations = await PresetDbService.getAllDistillationsForPreset(presetKey)
 
-		// Filter files matching the pattern and exclude the latest
-		const pattern = new RegExp(`^${presetKey}-\\d{4}-\\d{2}-\\d{2}\\.md$`)
+		if (dbDistillations.length === 0) {
+			return json([])
+		}
 
-		// Get matching files
-		const matchingFiles = files.filter((file) => pattern.test(file))
-
-		// Process files to get their details including size
-		const versionsPromises = matchingFiles.map(async (file) => {
-			// Extract date from filename
-			const match = file.match(/(\d{4}-\d{2}-\d{2})\.md$/)
-			const date = match ? match[1] : 'unknown'
-
-			// Get file size
-			const filePath = `outputs/${file}`
-			const sizeKb = await getFileSizeKb(filePath)
-
-			return {
-				filename: file,
-				date,
-				path: `/outputs/${file}`,
-				sizeKb
-			}
-		})
-
-		// Wait for all file size calculations
-		const versions = await Promise.all(versionsPromises)
-
-		// Sort newest first
-		versions.sort((a, b) => b.date.localeCompare(a.date))
+		// Transform database distillations to version format
+		const versions = dbDistillations
+			.filter((d) => d.version !== 'latest') // Exclude 'latest' version from list
+			.map((dbDistillation) => transformDbDistillationToVersion(dbDistillation, presetKey))
+			.sort((a, b) => b.date.localeCompare(a.date)) // Sort newest first
 
 		return json(versions)
 	} catch (e) {
-		console.error('Error reading distilled versions:', e)
-		return json([])
+		logErrorAlways('Database error reading distilled versions:', e)
+		throw error(500, 'Failed to retrieve distilled versions from database')
 	}
 }

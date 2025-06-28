@@ -97,10 +97,10 @@ describe('MCP Handler Integration', () => {
 
 	it('should handle array of section names', async () => {
 		// Test with multiple valid sections
-		const result = await getDocumentationHandler({ 
-			section: ['$state', '$derived', '$effect'] 
+		const result = await getDocumentationHandler({
+			section: ['$state', '$derived', '$effect']
 		})
-		
+
 		expect(result.content).toBeDefined()
 		expect(result.content[0].type).toBe('text')
 		expect(result.content[0].text).toContain('$state')
@@ -111,10 +111,10 @@ describe('MCP Handler Integration', () => {
 
 	it('should handle mixed valid and invalid sections in array', async () => {
 		// Test with mix of valid and invalid sections
-		const result = await getDocumentationHandler({ 
-			section: ['$state', 'non-existent-section', '$derived'] 
+		const result = await getDocumentationHandler({
+			section: ['$state', 'non-existent-section', '$derived']
 		})
-		
+
 		expect(result.content).toBeDefined()
 		expect(result.content[0].type).toBe('text')
 		expect(result.content[0].text).toContain('$state')
@@ -125,10 +125,10 @@ describe('MCP Handler Integration', () => {
 
 	it('should handle JSON string arrays from Claude', async () => {
 		// Test with JSON string array (like Claude sends)
-		const result = await getDocumentationHandler({ 
+		const result = await getDocumentationHandler({
 			section: '["$state", "$derived"]'
 		})
-		
+
 		expect(result.content).toBeDefined()
 		expect(result.content[0].type).toBe('text')
 		expect(result.content[0].text).toContain('$state')

@@ -1,8 +1,8 @@
 {
-  "mcpServers": {
-    "svelte-llm": {
-      "type": "sse",
-      "url": "https://svelte-llm.khromov.se/mcp/sse"
-    }
-  }
+	"mcpServers": {
+		"svelte-llm": {
+			"type": "sse",
+			"url": "https://svelte-llm.khromov.se/mcp/sse"
+		}
+	}
 }

@@ -1,6 +1,7 @@
 import type { LLMProvider } from './llm.ts'
 import { Anthropic } from '@anthropic-ai/sdk'
 import { env } from '$env/dynamic/private'
+import { logErrorAlways, logWarningAlways, log } from '$lib/log'
 
 // Batch API interfaces
 export interface AnthropicBatchRequest {
@@ -67,15 +68,7 @@ export class AnthropicProvider implements LLMProvider {
 	private baseUrl: string
 	private apiKey: string
 	name = 'Anthropic'
-	private readonly availableModels = [
-		'claude-sonnet-4-20250514',
-		'claude-opus-4-20250514',
-		'claude-3-7-sonnet-20250219',
-		'claude-3-5-sonnet-20241022', // 3.5 v2
-		'claude-3-5-sonnet-20240620', // 3.5
-		'claude-3-5-haiku-20241022',
-		'claude-3-opus-20240229'
-	]
+	private readonly availableModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514']
 
 	constructor(modelId?: string) {
 		const apiKey = env.ANTHROPIC_API_KEY
@@ -112,9 +105,10 @@ export class AnthropicProvider implements LLMProvider {
 				temperature: temperature || 0.7
 			})
 
-			return completion.content[0]?.text || ''
+			const firstContent = completion.content[0]
+			return firstContent?.type === 'text' ? firstContent.text : ''
 		} catch (error) {
-			console.error('Error generating code with Anthropic:', error)
+			logErrorAlways('Error generating code with Anthropic:', error)
 			throw new Error(
 				`Failed to generate code: ${error instanceof Error ? error.message : String(error)}`
 			)
@@ -163,7 +157,7 @@ export class AnthropicProvider implements LLMProvider {
 
 			return await response.json()
 		} catch (error) {
-			console.error('Error creating batch with Anthropic:', error)
+			logErrorAlways('Error creating batch with Anthropic:', error)
 			throw new Error(
 				`Failed to create batch: ${error instanceof Error ? error.message : String(error)}`
 			)
@@ -207,7 +201,7 @@ export class AnthropicProvider implements LLMProvider {
 
 				if (retryCount > maxRetries) {
 					// If we've exceeded the maximum number of retries, log the error and throw
-					console.error(
+					logErrorAlways(
 						`Error getting batch status for ${batchId} after ${maxRetries} retries:`,
 						error
 					)
@@ -219,11 +213,11 @@ export class AnthropicProvider implements LLMProvider {
 				}
 
 				// Log retry attempt
-				console.warn(
+				logWarningAlways(
 					`Error getting batch status for ${batchId} (attempt ${retryCount}/${maxRetries}):`,
 					error
 				)
-				console.log(`Retrying in ${retryDelay / 1000} seconds...`)
+				log(`Retrying in ${retryDelay / 1000} seconds...`)
 
 				// Wait for the specified delay before retrying
 				await new Promise((resolve) => setTimeout(resolve, retryDelay))
@@ -265,7 +259,7 @@ export class AnthropicProvider implements LLMProvider {
 
 			return results
 		} catch (error) {
-			console.error(`Error getting batch results:`, error)
+			logErrorAlways(`Error getting batch results:`, error)
 			throw new Error(
 				`Failed to get batch results: ${error instanceof Error ? error.message : String(error)}`
 			)

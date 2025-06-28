@@ -13,7 +13,8 @@
 		"eslint:fix": "eslint . --fix",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "npm run test:unit -- --run",
+		"db:migrate:local": "atlas migrate apply --env local"
 	},
 	"devDependencies": {
 		"@octokit/rest": "^21.1.1",
@@ -23,14 +24,17 @@
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.8",
 		"@types/eslint": "^9.6.1",
+		"@types/pg": "^8.15.4",
 		"@types/tar-stream": "^2.2.3",
 		"@vercel/mcp-adapter": "0.11.1",
+		"croner": "^9.1.0",
 		"eslint": "^9.29.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.46.1",
 		"globals": "^15.15.0",
 		"jsdom": "^26.1.0",
 		"minimatch": "^10.0.3",
+		"pg": "^8.16.2",
 		"prettier": "^3.5.3",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.6.13",

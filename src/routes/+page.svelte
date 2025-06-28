@@ -10,7 +10,8 @@
 	import PresetListItem from '$lib/components/PresetListItem.svelte'
 	import { SITE_URL } from '$lib/constants'
 	import toast from 'svelte-french-toast'
-	
+	import { logErrorAlways } from '$lib/log'
+
 	const SSE_ENDPOINT = 'https://svelte-llm.khromov.se/mcp/sse'
 	const STREAMABLE_ENDPOINT = 'https://svelte-llm.khromov.se/mcp/mcp'
 	const NPX_COMMAND = `npx mcp-remote ${STREAMABLE_ENDPOINT}`
@@ -62,7 +63,8 @@
 			id: 'claude-code',
 			name: 'Claude Code',
 			icon: '🔧',
-			description: 'The official Anthropic command-line tool. Run this command to add the MCP server:',
+			description:
+				'The official Anthropic command-line tool. Run this command to add the MCP server:',
 			instruction: `claude mcp add --transport sse --scope user svelte-llm ${SSE_ENDPOINT}`,
 			isCommand: true
 		},
@@ -85,7 +87,8 @@
 			id: 'github-copilot',
 			name: 'GitHub Copilot',
 			icon: '🐙',
-			description: 'GitHub Copilot extension for VS Code - put this in .vscode/mcp.json inside a "servers" object.',
+			description:
+				'GitHub Copilot extension for VS Code - put this in .vscode/mcp.json inside a "servers" object.',
 			instruction: `{
   "svelte-llm": {
     "command": "npx",
@@ -99,7 +102,8 @@
 			name: 'Cline',
 			icon: '🧑‍💻',
 			url: SSE_ENDPOINT,
-			description: 'Add this URL to your Cline MCP settings. Name the MCP svelte-llm or whatever you like.',
+			description:
+				'Add this URL to your Cline MCP settings. Name the MCP svelte-llm or whatever you like.'
 		},
 		{
 			id: 'others',
@@ -137,7 +141,7 @@
 				throw new Error(`Failed to load versions: ${response.status} ${response.statusText}`)
 			}
 		} catch (e) {
-			console.error(`Failed to load distilled versions for ${preset}:`, e)
+			logErrorAlways(`Failed to load distilled versions for ${preset}:`, e)
 			throw e
 		}
 	}
@@ -199,7 +203,7 @@
 			<p class="hero-description">
 				Connect your AI coding assistant directly to up-to-date Svelte 5 and SvelteKit documentation
 				via this <strong>Model Context Protocol (MCP) server</strong>, or download preset
-				documentation in llms.txt format and add the docs	 to your context.
+				documentation in llms.txt format and add the docs to your context.
 			</p>
 			<p class="hero-note">
 				Documentation is automatically fetched from the <a

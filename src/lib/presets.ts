@@ -281,11 +281,11 @@ export const presets = {
 	...otherPresets
 }
 
-export function transformAndSortPresets(presetsObject) {
+export function transformAndSortPresets(presetsObject: Record<string, PresetConfig>) {
 	return Object.entries(presetsObject)
 		.map(([key, value]) => ({
 			key: key.toLowerCase(),
 			...value
 		}))
-		.sort()
+		.sort((a, b) => a.key.localeCompare(b.key))
 }

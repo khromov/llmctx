@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { createMcpHandler } from '@vercel/mcp-adapter'
 import { env } from '$env/dynamic/private'
 import { presets } from '$lib/presets'
-import { fetchAndProcessMarkdown } from '$lib/fetchMarkdown'
+import { fetchAndProcessMultiplePresetsWithDb } from '$lib/fetchMarkdown'
+import { log, logAlways, logErrorAlways } from '$lib/log'
 
 interface DocumentSection {
 	filePath: string
@@ -79,12 +80,23 @@ function findSectionByTitleOrPath(
 }
 
 export const listSectionsHandler = async () => {
-	console.log('Listing sections from Svelte and SvelteKit full presets')
+	logAlways('Listing sections from Svelte and SvelteKit full presets')
 
 	try {
-		// Get sections from both full presets
-		const svelteDoc = await fetchAndProcessMarkdown(presets['svelte'], 'svelte')
-		const svelteKitDoc = await fetchAndProcessMarkdown(presets['sveltekit'], 'sveltekit')
+		// Use batch processing to get both presets at once
+		const presetsToFetch = [
+			{ key: 'svelte', config: presets['svelte'] },
+			{ key: 'sveltekit', config: presets['sveltekit'] }
+		]
+
+		const contentMap = await fetchAndProcessMultiplePresetsWithDb(presetsToFetch)
+
+		const svelteDoc = contentMap.get('svelte')
+		const svelteKitDoc = contentMap.get('sveltekit')
+
+		if (!svelteDoc || !svelteKitDoc) {
+			throw new Error('Failed to fetch documentation')
+		}
 
 		const svelteSections = parseDocumentSections(svelteDoc)
 		const svelteKitSections = parseDocumentSections(svelteKitDoc)
@@ -93,9 +105,7 @@ export const listSectionsHandler = async () => {
 		const filteredSvelteSections = svelteSections.filter((section) => {
 			const isValid = section.content.length >= 100
 			if (!isValid) {
-				console.log(
-					`Filtered out Svelte section: "${section.title}" (${section.content.length} chars)`
-				)
+				log(`Filtered out Svelte section: "${section.title}" (${section.content.length} chars)`)
 			}
 			return isValid
 		})
@@ -103,9 +113,7 @@ export const listSectionsHandler = async () => {
 		const filteredSvelteKitSections = svelteKitSections.filter((section) => {
 			const isValid = section.content.length >= 100
 			if (!isValid) {
-				console.log(
-					`Filtered out SvelteKit section: "${section.title}" (${section.content.length} chars)`
-				)
+				log(`Filtered out SvelteKit section: "${section.title}" (${section.content.length} chars)`)
 			}
 			return isValid
 		})
@@ -137,7 +145,7 @@ export const listSectionsHandler = async () => {
 			]
 		}
 	} catch (error) {
-		console.error('Error listing sections:', error)
+		logErrorAlways('Error listing sections:', error)
 		return {
 			content: [
 				{
@@ -151,9 +159,20 @@ export const listSectionsHandler = async () => {
 
 export const getDocumentationHandler = async ({ section }: { section: string | string[] }) => {
 	try {
-		// Get documentation from both full presets
-		const svelteDoc = await fetchAndProcessMarkdown(presets['svelte'], 'svelte')
-		const svelteKitDoc = await fetchAndProcessMarkdown(presets['sveltekit'], 'sveltekit')
+		// Use batch processing to get both presets at once
+		const presetsToFetch = [
+			{ key: 'svelte', config: presets['svelte'] },
+			{ key: 'sveltekit', config: presets['sveltekit'] }
+		]
+
+		const contentMap = await fetchAndProcessMultiplePresetsWithDb(presetsToFetch)
+
+		const svelteDoc = contentMap.get('svelte')
+		const svelteKitDoc = contentMap.get('sveltekit')
+
+		if (!svelteDoc || !svelteKitDoc) {
+			throw new Error('Failed to fetch documentation')
+		}
 
 		// Parse sections with titles
 		const svelteSections = parseDocumentSections(svelteDoc)
@@ -163,7 +182,11 @@ export const getDocumentationHandler = async ({ section }: { section: string | s
 		let sections: string[]
 		if (Array.isArray(section)) {
 			sections = section
-		} else if (typeof section === 'string' && section.trim().startsWith('[') && section.trim().endsWith(']')) {
+		} else if (
+			typeof section === 'string' &&
+			section.trim().startsWith('[') &&
+			section.trim().endsWith(']')
+		) {
 			// Try to parse JSON string array
 			try {
 				const parsed = JSON.parse(section)
@@ -178,7 +201,7 @@ export const getDocumentationHandler = async ({ section }: { section: string | s
 		const notFound: string[] = []
 
 		for (const sectionName of sections) {
-			console.log({ section: sectionName })
+			log({ section: sectionName })
 
 			// Search in Svelte documentation first
 			const svelteMatch = findSectionByTitleOrPath(svelteSections, sectionName)
@@ -231,7 +254,7 @@ export const getDocumentationHandler = async ({ section }: { section: string | s
 			]
 		}
 	} catch (error) {
-		console.error('Error fetching documentation:', error)
+		logErrorAlways('Error fetching documentation:', error)
 		const sectionList = Array.isArray(section) ? section.join(', ') : section
 		return {
 			content: [

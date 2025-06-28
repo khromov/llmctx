@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
-		watch: { ignored: ['markdown_files/**', 'temp/**'] }
+		watch: { ignored: ['temp/**'] }
 	},
 	test: {
 		workspace: [
