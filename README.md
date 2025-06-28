@@ -1,4 +1,4 @@
-## svelte-llm
+# svelte-llm
 
 LLM presets for Svelte 5 and SvelteKit. Visit the site at [svelte-llm.khromov.se](https://svelte-llm.khromov.se).
 
@@ -9,15 +9,17 @@ This service provides an MCP (Model Context Protocol) endpoint for use with AI a
 - **SSE (Claude Desktop)**: `https://svelte-llm.khromov.se/mcp/sse`
 - **Streamable HTTP (most other clients)**: `https://svelte-llm.khromov.se/mcp/mcp`
 
-OG image from https://dynamic-og-image-generator.vercel.app/
+OG image from <https://dynamic-og-image-generator.vercel.app/>
 
 # Setup
 
 - Create a `.env` file with the content:
+
   ```
   GITHUB_TOKEN=
   DB_URL=postgres://admin:admin@localhost:5432/db
   ```
+
 - Create [a Classic GitHub token](https://github.com/settings/tokens). It must have `public_repo` permissions.
 - Enter this in the .env file.
 - Set up PostgreSQL (you can use the included docker-compose.yml)
@@ -72,6 +74,6 @@ Please ensure that the documentation source is reliable and actively maintained.
 NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS="--insecure-http-parser" npx @modelcontextprotocol/inspector
 ```
 
-http://127.0.0.1:6274
+<http://127.0.0.1:6274>
 
 You can also use GitHub Copilot in Agent mode to try the agent locally, see `.vscode/mcp.json` for info on how that works.
