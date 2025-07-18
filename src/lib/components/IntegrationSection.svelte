@@ -1,0 +1,152 @@
+<script lang="ts">
+	import { SITE_URL } from '$lib/constants'
+
+	const instructions = [
+		{
+			title: 'Cursor',
+			description: `Cursor supports adding context via URL using the <a href="https://docs.cursor.com/context/@-symbols/@-link#paste-links">Paste Links</a> feature.`,
+			command: `@${SITE_URL}/[preset]`
+		},
+		{
+			title: 'Zed',
+			description:
+				'You can use this project directly in Zed using a <a href="https://zed.dev/docs/assistant/commands">/fetch command</a>.',
+			command: `/fetch ${SITE_URL}/[preset]`
+		},
+		{
+			title: 'cURL',
+			description: `Let's be real—if you clicked this, you probably already know how to use cURL. But if you don't, here's a quick example:`,
+			command: `curl ${SITE_URL}/[preset] -o context.txt`
+		}
+	]
+</script>
+
+<section class="integration-section">
+	<div class="section-header">
+		<h2>AI Assistant Integration</h2>
+		<p class="section-description">
+			Multiple ways to use these presets with your favorite AI coding assistants
+		</p>
+	</div>
+
+	<div class="integration-grid">
+		{#each instructions as { title, description, command }}
+			<div class="integration-card">
+				<h3>{title}</h3>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				<p>{@html description}</p>
+				<div class="code-block">
+					<code>{command}</code>
+				</div>
+			</div>
+		{/each}
+	</div>
+</section>
+
+<style>
+	.integration-section {
+		margin-bottom: 40px;
+	}
+
+	.section-header {
+		margin-bottom: 16px;
+		padding-top: 12px;
+	}
+
+	.section-header h2 {
+		font-size: 24px;
+		font-weight: 700;
+		margin: 0 0 8px 0;
+		color: #1d1d1f;
+		letter-spacing: -0.01em;
+		position: relative;
+		padding-bottom: 6px;
+	}
+
+	.section-header h2::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 60px;
+		height: 3px;
+		background: linear-gradient(90deg, #ff3e00 0%, #ff6b35 100%);
+		border-radius: 2px;
+	}
+
+	.section-description {
+		font-size: 16px;
+		color: #6e6e73;
+		margin: 0;
+		line-height: 1.5;
+		max-width: 600px;
+	}
+
+	.integration-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 16px;
+	}
+
+	.integration-card {
+		background: white;
+		border-radius: 12px;
+		padding: 24px;
+		box-shadow:
+			0 4px 24px rgba(0, 0, 0, 0.04),
+			0 2px 8px rgba(0, 0, 0, 0.06);
+		border: 1px solid rgba(0, 0, 0, 0.06);
+		transition: all 0.3s ease;
+	}
+
+	.integration-card:hover {
+		transform: translateY(-4px);
+		box-shadow:
+			0 8px 32px rgba(0, 0, 0, 0.08),
+			0 4px 16px rgba(0, 0, 0, 0.08);
+	}
+
+	.integration-card h3 {
+		font-size: 18px;
+		font-weight: 600;
+		margin: 0 0 10px 0;
+		color: #1d1d1f;
+	}
+
+	.integration-card p {
+		font-size: 16px;
+		color: #6e6e73;
+		margin: 0 0 16px 0;
+		line-height: 1.5;
+	}
+
+	.integration-card .code-block {
+		background: #f5f5f7;
+		color: #1d1d1f;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		position: static;
+		padding: 12px;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 13px;
+		border-radius: 8px;
+	}
+
+	.integration-card .code-block code {
+		color: #1d1d1f;
+		display: block;
+		word-break: break-all;
+	}
+
+	/* Responsive Design */
+	@media (max-width: 768px) {
+		.integration-grid {
+			grid-template-columns: 1fr;
+			gap: 16px;
+		}
+
+		.integration-card {
+			padding: 24px;
+		}
+	}
+</style>
