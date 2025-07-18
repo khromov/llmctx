@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CopyIcon from '$lib/components/CopyIcon.svelte'
-	import toast from 'svelte-french-toast'
+	import { toast } from 'svelte-sonner'
 
 	let {
 		code,
