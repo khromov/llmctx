@@ -4,13 +4,16 @@
 	const instructions = [
 		{
 			title: 'Cursor',
-			description: `Cursor supports adding context via URL using the <a href="https://docs.cursor.com/context/@-symbols/@-link#paste-links">Paste Links</a> feature.`,
+			description: 'Cursor supports adding context via URL using the Paste Links feature.',
+			descriptionLinkText: 'Paste Links',
+			descriptionLinkUrl: 'https://docs.cursor.com/context/@-symbols/@-link#paste-links',
 			command: `@${SITE_URL}/[preset]`
 		},
 		{
 			title: 'Zed',
-			description:
-				'You can use this project directly in Zed using a <a href="https://zed.dev/docs/assistant/commands">/fetch command</a>.',
+			description: 'You can use this project directly in Zed using a /fetch command.',
+			descriptionLinkText: '/fetch command',
+			descriptionLinkUrl: 'https://zed.dev/docs/assistant/commands',
 			command: `/fetch ${SITE_URL}/[preset]`
 		},
 		{
@@ -30,11 +33,20 @@
 	</div>
 
 	<div class="integration-grid">
-		{#each instructions as { title, description, command }}
+		{#each instructions as { title, description, descriptionLinkText, descriptionLinkUrl, command }}
 			<div class="integration-card">
 				<h3>{title}</h3>
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				<p>{@html description}</p>
+				<p>
+					{#if descriptionLinkText && descriptionLinkUrl}
+						{description.split(descriptionLinkText)[0]}<a
+							href={descriptionLinkUrl}
+							target="_blank"
+							rel="noopener noreferrer">{descriptionLinkText}</a
+						>{description.split(descriptionLinkText)[1] || ''}
+					{:else}
+						{description}
+					{/if}
+				</p>
 				<div class="code-block">
 					<code>{command}</code>
 				</div>
@@ -118,6 +130,16 @@
 		color: #6e6e73;
 		margin: 0 0 16px 0;
 		line-height: 1.5;
+	}
+
+	.integration-card a {
+		color: #007aff;
+		text-decoration: none;
+	}
+
+	.integration-card a:hover {
+		color: #0056b3;
+		text-decoration: underline;
 	}
 
 	.integration-card .code-block {
