@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { SITE_URL } from '$lib/constants'
-	import { Toaster } from 'svelte-french-toast'
+	import { Toaster } from 'svelte-sonner'
 
 	let { children } = $props()
 
