@@ -14,7 +14,10 @@ interface DocumentSection {
 /**
  * Safely extract title from metadata, ensuring it's a string
  */
-function getTitleFromMetadata(metadata: Record<string, unknown> | undefined, fallbackPath: string): string {
+function getTitleFromMetadata(
+	metadata: Record<string, unknown> | undefined,
+	fallbackPath: string
+): string {
 	if (metadata?.title && typeof metadata.title === 'string') {
 		return metadata.title
 	}
@@ -138,9 +141,7 @@ export const getDocumentationHandler = async ({ section }: { section: string | s
 				const framework = matchedContent.path.includes('/docs/svelte/') ? 'Svelte' : 'SvelteKit'
 
 				const title = getTitleFromMetadata(matchedContent.metadata, matchedContent.path)
-				results.push(
-					`📖 ${framework} documentation (${title}):\n\n${formattedContent}`
-				)
+				results.push(`📖 ${framework} documentation (${title}):\n\n${formattedContent}`)
 			} else {
 				notFound.push(cleanSection)
 			}
