@@ -17,9 +17,12 @@ OG image from https://dynamic-og-image-generator.vercel.app/
   ```
   GITHUB_TOKEN=
   DB_URL=postgres://admin:admin@localhost:5432/db
+  LLM_PROVIDER=anthropic
+  ANTHROPIC_API_KEY=
   ```
 - Create [a Classic GitHub token](https://github.com/settings/tokens). It must have `public_repo` permissions.
 - Enter this in the .env file.
+- Set `LLM_PROVIDER=lmstudio` to use local LM Studio instead of Anthropic for AI distillation. LM Studio requires the app running locally while Anthropic needs an API key.
 - Run `docker-compose up`
 - Run:
 

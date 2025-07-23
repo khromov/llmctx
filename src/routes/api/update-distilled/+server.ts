@@ -8,7 +8,8 @@ import {
 	processMarkdownFromTarball
 } from '$lib/fetchMarkdown'
 import type { RequestHandler } from './$types'
-import { AnthropicProvider, type AnthropicBatchRequest } from '$lib/anthropic'
+import { getDefaultProvider, LLMProviderFactory } from '$lib/llmProviderFactory'
+import type { BatchRequest } from '$lib/llm'
 import { PresetDbService } from '$lib/server/presetDb'
 import { ContentDistilledDbService } from '$lib/server/contentDistilledDb'
 import { DistillablePreset } from '$lib/types/db'
@@ -83,28 +84,34 @@ export const GET: RequestHandler = async ({ url }) => {
 			logAlways(`Content minimized according to preset configuration`)
 		}
 
-		const anthropic = new AnthropicProvider('claude-sonnet-4-20250514')
+		// Get the configured LLM provider
+		const llmProvider = getDefaultProvider()
+		const providerInfo = LLMProviderFactory.getProviderInfo()
+
+		logAlways(`Using ${providerInfo.name} provider with model: ${llmProvider.getModelIdentifier()}`)
 
 		distillationJob = await PresetDbService.createDistillationJob({
 			preset_name: DistillablePreset.SVELTE_COMPLETE_DISTILLED,
 			status: 'pending',
-			model_used: anthropic.getModelIdentifier(),
+			model_used: llmProvider.getModelIdentifier(),
 			total_files: filesToProcess.length,
 			minimize_applied: !!distilledPreset.minimize,
 			metadata: {
 				originalFileCount,
-				filteredFiles: originalFileCount - filesToProcess.length
+				filteredFiles: originalFileCount - filesToProcess.length,
+				provider: providerInfo.name
 			}
 		})
 
-		const batchRequests: AnthropicBatchRequest[] = filesToProcess.map((fileObj, index) => {
+		// Create batch requests in the generic format
+		const batchRequests: BatchRequest[] = filesToProcess.map((fileObj, index) => {
 			const content = fileObj.content
 			const fullPrompt = DISTILLATION_PROMPT + content
 
 			return {
 				custom_id: `file-${index}`,
 				params: {
-					model: anthropic.getModelIdentifier(),
+					model: llmProvider.getModelIdentifier(),
 					max_tokens: 8192,
 					messages: [
 						{
@@ -117,7 +124,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			}
 		})
 
-		const batchResponse = await anthropic.createBatch(batchRequests)
+		const batchResponse = await llmProvider.createBatch(batchRequests)
 
 		try {
 			distillationJob = await PresetDbService.updateDistillationJob(distillationJob.id, {
@@ -128,11 +135,11 @@ export const GET: RequestHandler = async ({ url }) => {
 			logErrorAlways('Failed to update distillation job:', dbError)
 		}
 
-		let batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+		let batchStatus = await llmProvider.getBatchStatus(batchResponse.id)
 
 		while (batchStatus.processing_status === 'in_progress') {
 			await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds before polling again
-			batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+			batchStatus = await llmProvider.getBatchStatus(batchResponse.id)
 
 			logAlways(
 				`Batch status: ${batchStatus.processing_status}, Succeeded: ${batchStatus.request_counts.succeeded}, Processing: ${batchStatus.request_counts.processing}`
@@ -153,7 +160,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			throw error(500, 'Batch completed but no results URL available')
 		}
 
-		const results = await anthropic.getBatchResults(batchStatus.results_url)
+		const results = await llmProvider.getBatchResults(batchStatus.results_url)
 
 		let totalInputTokens = 0
 		let totalOutputTokens = 0
@@ -313,6 +320,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		return json({
 			success: true,
+			provider: providerInfo.name,
+			model: llmProvider.getModelIdentifier(),
 			totalFiles: originalFileCount,
 			shortFilesRemoved,
 			filesProcessed: filesToProcess.length,
