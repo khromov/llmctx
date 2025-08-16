@@ -17,6 +17,7 @@
 		"mcp": "DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector",
 		"clear-db": "node scripts/clear-db.js",
 		"bp": "npm run build && CONTENT_SYNC_SECRET_KEY=secret DEV=true node --expose-gc build/ ",
+		"bp-snapshot": "mkdir -p mount && curl 'http://localhost:3000/api/heap-snapshot?secret_key=secret'",
 		"stress-test": "node --expose-gc scripts/test-client-stress.mjs http://localhost:3000"
 	},
 	"devDependencies": {
