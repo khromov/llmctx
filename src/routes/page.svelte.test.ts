@@ -71,7 +71,6 @@ const mockDistilledVersions = {
 
 // Complete mock data object that matches the new PageData type
 const mockPageData = {
-	isOldHost: false,
 	presetSizes: mockPresetSizes,
 	distilledVersions: mockDistilledVersions
 }
@@ -135,7 +134,6 @@ describe('/+page.svelte', () => {
 	test('should handle failed distilled versions API calls gracefully', async () => {
 		// Create mock data with failed promises
 		const mockPageDataWithFailures = {
-			isOldHost: false,
 			presetSizes: mockPresetSizes,
 			distilledVersions: {
 				...mockDistilledVersions,
