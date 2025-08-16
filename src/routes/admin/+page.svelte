@@ -6,7 +6,8 @@
 	const endpoints = {
 		sync: '/api/sync-content',
 		'update-distilled': '/api/update-distilled',
-		'heap-snapshot': '/api/heap-snapshot'
+		'heap-snapshot': '/api/heap-snapshot',
+		'memory-status': '/api/memory-status'
 	}
 
 	// Load secret key from localStorage on mount
@@ -127,6 +128,12 @@
 				<span class="method">GET</span>
 				<a href="/api/scheduler-status">/api/scheduler-status</a>
 				<span class="description">Check background scheduler status</span>
+			</div>
+
+			<div class="endpoint">
+				<span class="method">GET</span>
+				<a href="/api/memory-status">/api/memory-status</a>
+				<span class="description">View current memory usage and system statistics</span>
 			</div>
 
 			<div class="endpoint" class:disabled={!secretKey.trim()}>
