@@ -27,7 +27,7 @@ export async function getPresetContent(presetKey: string): Promise<string | null
 		// Check cache first
 		const cache = getCacheService()
 		const cacheKey = `preset:${presetKey}`
-		
+
 		try {
 			const cachedData = await cache.get(cacheKey)
 			if (cachedData) {
@@ -175,11 +175,11 @@ export async function clearPresetCache(presetKey: string): Promise<boolean> {
 		const cache = getCacheService()
 		const cacheKey = `preset:${presetKey}`
 		const success = await cache.delete(cacheKey)
-		
+
 		if (success) {
 			logAlways(`Cleared cache for preset ${presetKey}`)
 		}
-		
+
 		return success
 	} catch (error) {
 		logErrorAlways(`Error clearing cache for preset ${presetKey}:`, error)
@@ -195,7 +195,7 @@ export async function clearAllPresetCaches(): Promise<number> {
 		const cache = getCacheService()
 		const allPresetKeys = Object.keys(presets)
 		let clearedCount = 0
-		
+
 		for (const presetKey of allPresetKeys) {
 			const cacheKey = `preset:${presetKey}`
 			const success = await cache.delete(cacheKey)
@@ -203,7 +203,7 @@ export async function clearAllPresetCaches(): Promise<number> {
 				clearedCount++
 			}
 		}
-		
+
 		logAlways(`Cleared cache for ${clearedCount} presets`)
 		return clearedCount
 	} catch (error) {
