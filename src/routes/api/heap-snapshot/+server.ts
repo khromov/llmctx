@@ -24,7 +24,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 	try {
 		// Use different output directories for dev vs production
-		const outputDir = dev ? './mount' : '/app/outputs'
+		const outputDir = dev || env.DEV === 'true' ? './mount' : '/app/outputs'
 
 		if (!existsSync(outputDir)) {
 			logAlways('Creating outputs directory:', outputDir)
