@@ -15,7 +15,9 @@
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"mcp": "DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector",
-		"clear-db": "node scripts/clear-db.js"
+		"clear-db": "node scripts/clear-db.js",
+		"bp": "npm run build && CONTENT_SYNC_SECRET_KEY=secret DEV=true node --expose-gc build/ ",
+		"stress-test": "node --expose-gc scripts/test-client-stress.mjs http://localhost:3000"
 	},
 	"devDependencies": {
 		"@anthropic-ai/sdk": "^0.57.0",
