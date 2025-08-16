@@ -1,7 +1,6 @@
 import { z } from 'zod'
-import createMcpHandler from '../../node_modules/mcp-handler/src/handler/index'
+import { createMcpHandler } from 'mcp-handler'
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { env } from '$env/dynamic/private'
 import { ContentDbService } from '$lib/server/contentDb'
 import { ContentDistilledDbService } from '$lib/server/contentDistilledDb'
@@ -42,12 +41,12 @@ function getTitleFromMetadata(
 }
 
 export const handler = createMcpHandler(
-	(server: McpServer) => {
+	(server) => {
 		server.tool(
 			'list_sections',
 			'Lists all available Svelte 5 and SvelteKit documentation sections in a structured format. Returns sections as a list of "* title: [section_title], path: [file_path]" - you can use either the title or path when querying a specific section via the get_documentation tool. Always run list_sections first for any query related to Svelte development to discover available content.',
 			{},
-			async () => listSectionsHandler()
+			listSectionsHandler
 		)
 
 		server.tool(
@@ -60,7 +59,7 @@ export const handler = createMcpHandler(
 						'The section name(s) to retrieve. Can search by title (e.g., "$state", "load functions") or file path (e.g., "docs/svelte/state.md"). Supports single string and array of strings'
 					)
 			},
-			async ({ section }: { section: string | string[] }) => getDocumentationHandler({ section })
+			getDocumentationHandler
 		)
 
 		// Main developer prompt with optional task parameter
@@ -74,7 +73,7 @@ export const handler = createMcpHandler(
 					task: z.string().optional().describe('Optional specific task or requirement to focus on')
 				}
 			},
-			({ task }: { task?: string }) => {
+			({ task }) => {
 				const promptText = createSvelteDeveloperPromptWithTask(task)
 
 				return {
@@ -137,7 +136,7 @@ export const handler = createMcpHandler(
 					return { resources }
 				},
 				complete: {
-					slug: async (query: any) => {
+					slug: async (query) => {
 						const suggestions = []
 
 						// Add preset completions first
@@ -162,8 +161,7 @@ export const handler = createMcpHandler(
 					}
 				}
 			}),
-			async (uri: any, variables: any) => {
-				const slug = variables.slug
+			async (uri, { slug }) => {
 				// If array for some reason, use the first element
 				const slugString = Array.isArray(slug) ? slug[0] : slug
 
