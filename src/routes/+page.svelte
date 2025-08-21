@@ -95,7 +95,11 @@
 
 		<div class="api-card">
 			<div class="api-url">
-				<code>GET {SITE_URL}/api/svelte-sveltekit-docs</code>
+				<code
+					>GET <a href="{SITE_URL}/api/svelte-sveltekit-docs" target="_blank"
+						>{SITE_URL}/api/svelte-sveltekit-docs</a
+					></code
+				>
 				<button
 					class="copy-btn"
 					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/svelte-sveltekit-docs`)}
@@ -201,8 +205,19 @@
 		font-family:
 			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
 		font-size: 14px;
-		color: #10b981;
+		color: #374151;
 		font-weight: 600;
+	}
+
+	.api-url code a {
+		color: #10b981;
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.api-url code a:hover {
+		color: #059669;
+		text-decoration: underline;
 	}
 
 	.copy-btn {
