@@ -95,10 +95,10 @@
 
 		<div class="api-card">
 			<div class="api-url">
-				<code>GET {SITE_URL}/api/svelte-sveltekit-preset</code>
+				<code>GET {SITE_URL}/api/svelte-sveltekit-docs</code>
 				<button
 					class="copy-btn"
-					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/svelte-sveltekit-preset`)}
+					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/svelte-sveltekit-docs`)}
 				>
 					Copy
 				</button>
@@ -106,7 +106,7 @@
 
 			<div class="api-example">
 				<div class="example-section">
-					<strong>curl {SITE_URL}/api/svelte-sveltekit-preset</strong>
+					<strong>curl {SITE_URL}/api/svelte-sveltekit-docs</strong>
 				</div>
 				<pre><code
 						>{`{
