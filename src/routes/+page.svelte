@@ -87,6 +87,45 @@
 
 	<IntegrationSection siteUrl={SITE_URL} />
 
+	<!-- JSON API Section - Condensed -->
+	<section class="json-api-section">
+		<div class="section-header">
+			<h2>JSON API</h2>
+		</div>
+
+		<div class="api-card">
+			<div class="api-url">
+				<code>GET <a href="{SITE_URL}/api/docs" target="_blank">{SITE_URL}/api/docs</a></code>
+				<button
+					class="copy-btn"
+					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/docs`)}
+				>
+					Copy
+				</button>
+			</div>
+
+			<div class="api-example">
+				<div class="example-section">
+					<strong>curl {SITE_URL}/api/docs</strong>
+				</div>
+				<pre><code
+						>{`{
+  "success": true,
+  "metadata": { "total_documents": 127, "filtered_documents": 89, [...] },
+  "documents": [
+    {
+      "path": "apps/svelte.dev/content/docs/svelte/01-introduction/01-overview.md",
+      "title": "Overview",
+      "content": "The command line interface (CLI), sv, is a toolkit...",
+      [...]
+    }
+  ]
+}`}</code
+					></pre>
+			</div>
+		</div>
+	</section>
+
 	<SiteFooter />
 </main>
 
@@ -107,9 +146,9 @@
 		min-height: 100vh;
 	}
 
-	/* Legacy section specific styles */
-	.presets-section {
-		margin-bottom: 25px;
+	/* JSON API Section - Condensed Styles */
+	.json-api-section {
+		margin-bottom: 40px;
 	}
 
 	.section-header {
@@ -134,8 +173,96 @@
 		left: 0;
 		width: 60px;
 		height: 3px;
-		background: linear-gradient(90deg, #ff3e00 0%, #ff6b35 100%);
+		background: linear-gradient(90deg, #10b981 0%, #059669 100%);
 		border-radius: 2px;
+	}
+
+	.api-card {
+		background: white;
+		border-radius: 12px;
+		padding: 20px;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+		border: 1px solid rgba(0, 0, 0, 0.06);
+	}
+
+	.api-url {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 16px;
+		padding: 12px;
+		background: #f8fafc;
+		border-radius: 8px;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+	}
+
+	.api-url code {
+		flex: 1;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 14px;
+		color: #374151;
+		font-weight: 600;
+	}
+
+	.api-url code a {
+		color: #10b981;
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.api-url code a:hover {
+		color: #059669;
+		text-decoration: underline;
+	}
+
+	.copy-btn {
+		background: #10b981;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		padding: 6px 12px;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.copy-btn:hover {
+		background: #059669;
+		transform: translateY(-1px);
+	}
+
+	.api-example {
+		background: #f8fafc;
+		border-radius: 8px;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		overflow: hidden;
+	}
+
+	.example-section {
+		padding: 12px 16px;
+		background: #10b981;
+		color: white;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 13px;
+		font-weight: 500;
+	}
+
+	.api-example pre {
+		background: #1e1e1e;
+		color: #e5e7eb;
+		padding: 16px;
+		margin: 0;
+		font-size: 12px;
+		line-height: 1.4;
+		overflow-x: auto;
+	}
+
+	/* Legacy section specific styles */
+	.presets-section {
+		margin-bottom: 25px;
 	}
 
 	.preset-list {
@@ -171,6 +298,15 @@
 	@media (max-width: 768px) {
 		main {
 			padding: 0 16px;
+		}
+
+		.api-url {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.copy-btn {
+			align-self: center;
 		}
 
 		.section-header h2 {
