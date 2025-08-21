@@ -45,11 +45,10 @@ jobs:
           build-args: |
             PUBLIC_HELLO=world
 
-      # Uncomment and replace with your server
-      #- name: Deploy on CapRover
-      #  uses: caprover/deploy-from-github@v1.1.2
-      #  with:
-      #    server: https://apex.place
-      #    app: 'sveltekit'
-      #    token: '${{ secrets.APP_TOKEN }}'
-      #    image: 'ghcr.io/khromov/self-hosted-sveltekit-demo:main'
+      - name: Deploy on CapRover
+        uses: caprover/deploy-from-github@v1.1.2
+        with:
+          server: '${{ secrets.APP_SERVER }}'
+          app: 'svelte-llm-ctx-persistent'
+          token: '${{ secrets.APP_TOKEN }}'
+          image: 'ghcr.io/khromov/svelte-llm-mcp:main-custom'

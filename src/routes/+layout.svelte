@@ -1,21 +1,26 @@
 <script lang="ts">
 	import { SITE_URL } from '$lib/constants'
 	import { Toaster } from 'svelte-french-toast'
+	import MigrationBanner from '$lib/components/MigrationBanner.svelte'
 
-	let { children } = $props()
+	let { children, data } = $props()
 
 	const TITLE = 'svelte-llm - Svelte 5 and SvelteKit Developer documentation in an LLM-ready format'
 </script>
 
 <svelte:head>
 	<title>{TITLE}</title>
+	<link rel="canonical" href={SITE_URL} />
+
 	<meta property="og:title" content={TITLE} />
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content={SITE_URL} />
 	<meta property="og:image" content="{SITE_URL}/og.jpg" />
 </svelte:head>
 
-<div class="layout">
+<MigrationBanner show={data.isOldHost} />
+
+<div class="layout" class:has-migration-banner={data.isOldHost}>
 	<a
 		target="_blank"
 		href="https://github.com/khromov/llmctx"
@@ -58,6 +63,10 @@
 		min-height: 100vh;
 	}
 
+	.layout.has-migration-banner {
+		padding-top: 20px;
+	}
+
 	.github-corner {
 		position: fixed;
 		top: 0;
@@ -96,6 +105,12 @@
 		}
 		.github-corner .octo-arm {
 			animation: octocat-wave 560ms ease-in-out;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.layout.has-migration-banner {
+			padding-top: 16px;
 		}
 	}
 </style>

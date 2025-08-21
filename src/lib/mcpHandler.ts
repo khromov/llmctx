@@ -1,251 +1,43 @@
 import { z } from 'zod'
-import { createMcpHandler } from '@vercel/mcp-adapter'
+import { createMcpHandler } from 'mcp-handler'
+import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { env } from '$env/dynamic/private'
-import { presets } from '$lib/presets'
-import { fetchAndProcessMarkdown } from '$lib/fetchMarkdown'
+import { ContentDbService } from '$lib/server/contentDb'
+import { ContentDistilledDbService } from '$lib/server/contentDistilledDb'
+import type { DbContent } from '$lib/types/db'
+import { listSectionsHandler } from '$lib/handlers/listSectionsHandler'
+import { getDocumentationHandler } from '$lib/handlers/getDocumentationHandler'
+import { registerTemplatePrompts } from '$lib/mcpPrompts'
+import { PRESET_CONFIGS } from '$lib/mcpPresets'
+import { logAlways, logErrorAlways } from '$lib/log'
+import {
+	cleanDocumentationPath,
+	extractTitleFromPath,
+	removeFrontmatter
+} from '$lib/utils/pathUtils'
+import { createSvelteDeveloperPromptWithTask } from '$lib/utils/prompts'
 
-interface DocumentSection {
-	filePath: string
-	title: string
-	content: string
-}
-
-function parseDocumentSections(doc: string): DocumentSection[] {
-	const sections: DocumentSection[] = []
-	// Split only on headers that start with "docs/"
-	const parts = doc.split(/\n\n## (docs\/[^\n]+)/g)
-
-	for (let i = 1; i < parts.length; i += 2) {
-		const filePath = parts[i] // The captured group (docs/...)
-		const content = '## ' + filePath + '\n' + (parts[i + 1] || '') // The content after the header
-		const title = extractFrontmatterTitle(content) || extractTitleFromPath(filePath)
-
-		sections.push({
-			filePath,
-			title,
-			content
-		})
-	}
-
-	return sections
-}
-
-function extractFrontmatterTitle(content: string): string | null {
-	const lines = content.split('\n')
-	let inFrontmatter = false
-	let foundStart = false
-
-	for (const line of lines) {
-		if (line.trim() === '---') {
-			if (!foundStart) {
-				foundStart = true
-				inFrontmatter = true
-			} else if (inFrontmatter) {
-				break
-			}
-		} else if (inFrontmatter && line.startsWith('title:')) {
-			const title = line.replace('title:', '').trim()
-			return title || null
-		}
-	}
-
-	return null
-}
-
-function extractTitleFromPath(filePath: string): string {
-	const filename = filePath.split('/').pop() || filePath
-	return filename.replace('.md', '').replace(/^\d+-/, '')
-}
-
-function findSectionByTitleOrPath(
-	sections: DocumentSection[],
-	query: string
-): DocumentSection | null {
-	const lowerQuery = query.toLowerCase().replace(/,\s*$/, '')
-
-	// First try exact title match
-	let match = sections.find((section) => section.title.toLowerCase() === lowerQuery)
-	if (match) return match
-
-	// Then try partial title match
-	match = sections.find((section) => section.title.toLowerCase().includes(lowerQuery))
-	if (match) return match
-
-	// Finally try file path match for backward compatibility
-	match = sections.find((section) => section.filePath.toLowerCase().includes(lowerQuery))
-	if (match) return match
-
-	return null
-}
-
-export const listSectionsHandler = async () => {
-	console.log('Listing sections from Svelte and SvelteKit full presets')
-
+// Helper function to search for sections in the database
+async function searchSectionInDb(query: string): Promise<DbContent | null> {
 	try {
-		// Get sections from both full presets
-		const svelteDoc = await fetchAndProcessMarkdown(presets['svelte'], 'svelte')
-		const svelteKitDoc = await fetchAndProcessMarkdown(presets['sveltekit'], 'sveltekit')
-
-		const svelteSections = parseDocumentSections(svelteDoc)
-		const svelteKitSections = parseDocumentSections(svelteKitDoc)
-
-		// Filter out sections with less than 100 characters
-		const filteredSvelteSections = svelteSections.filter((section) => {
-			const isValid = section.content.length >= 100
-			if (!isValid) {
-				console.log(
-					`Filtered out Svelte section: "${section.title}" (${section.content.length} chars)`
-				)
-			}
-			return isValid
-		})
-
-		const filteredSvelteKitSections = svelteKitSections.filter((section) => {
-			const isValid = section.content.length >= 100
-			if (!isValid) {
-				console.log(
-					`Filtered out SvelteKit section: "${section.title}" (${section.content.length} chars)`
-				)
-			}
-			return isValid
-		})
-
-		// Format with single headers per framework
-		let output = ''
-
-		if (filteredSvelteSections.length > 0) {
-			output += '# Svelte\n'
-			output +=
-				filteredSvelteSections
-					.map((section) => `* title: ${section.title}, path: ${section.filePath}`)
-					.join('\n') + '\n\n'
-		}
-
-		if (filteredSvelteKitSections.length > 0) {
-			output += '# SvelteKit\n'
-			output += filteredSvelteKitSections
-				.map((section) => `* title: ${section.title}, path: ${section.filePath}`)
-				.join('\n')
-		}
-
-		return {
-			content: [
-				{
-					type: 'text' as const,
-					text: `📋 Available documentation sections:\n\n${output}\n\nUse get_documentation with a section name to retrieve specific content for a section.`
-				}
-			]
-		}
+		// Use the searchContent method with default parameters
+		const result = await ContentDbService.searchContent(query, 'content')
+		return result
 	} catch (error) {
-		console.error('Error listing sections:', error)
-		return {
-			content: [
-				{
-					type: 'text' as const,
-					text: `❌ Error listing sections: ${error instanceof Error ? error.message : String(error)}`
-				}
-			]
-		}
+		logErrorAlways(`Error searching for section "${query}":`, error)
+		return null
 	}
 }
 
-export const getDocumentationHandler = async ({ section }: { section: string | string[] }) => {
-	try {
-		// Get documentation from both full presets
-		const svelteDoc = await fetchAndProcessMarkdown(presets['svelte'], 'svelte')
-		const svelteKitDoc = await fetchAndProcessMarkdown(presets['sveltekit'], 'sveltekit')
-
-		// Parse sections with titles
-		const svelteSections = parseDocumentSections(svelteDoc)
-		const svelteKitSections = parseDocumentSections(svelteKitDoc)
-
-		// Handle array of sections - including JSON string arrays
-		let sections: string[]
-		if (Array.isArray(section)) {
-			sections = section
-		} else if (
-			typeof section === 'string' &&
-			section.trim().startsWith('[') &&
-			section.trim().endsWith(']')
-		) {
-			// Try to parse JSON string array
-			try {
-				const parsed = JSON.parse(section)
-				sections = Array.isArray(parsed) ? parsed : [section]
-			} catch {
-				sections = [section]
-			}
-		} else {
-			sections = [section]
-		}
-		const results: string[] = []
-		const notFound: string[] = []
-
-		for (const sectionName of sections) {
-			console.log({ section: sectionName })
-
-			// Search in Svelte documentation first
-			const svelteMatch = findSectionByTitleOrPath(svelteSections, sectionName)
-
-			if (svelteMatch) {
-				results.push(`📖 Svelte documentation (${svelteMatch.title}):\n\n${svelteMatch.content}`)
-				continue
-			}
-
-			// Search in SvelteKit documentation if not found in Svelte
-			const svelteKitMatch = findSectionByTitleOrPath(svelteKitSections, sectionName)
-
-			if (svelteKitMatch) {
-				results.push(
-					`📖 SvelteKit documentation (${svelteKitMatch.title}):\n\n${svelteKitMatch.content}`
-				)
-				continue
-			}
-
-			// If not found in either
-			notFound.push(sectionName)
-		}
-
-		if (results.length === 0) {
-			// No sections found
-			const sectionList = Array.isArray(section) ? section.join(', ') : section
-			return {
-				content: [
-					{
-						type: 'text' as const,
-						text: `❌ Section(s) "${sectionList}" not found in Svelte or SvelteKit documentation. Use list_sections to see all available sections.`
-					}
-				]
-			}
-		}
-
-		// Build response text
-		let responseText = results.join('\n\n---\n\n')
-
-		if (notFound.length > 0) {
-			responseText += `\n\n---\n\n❌ The following sections were not found: ${notFound.join(', ')}`
-		}
-
-		return {
-			content: [
-				{
-					type: 'text' as const,
-					text: responseText
-				}
-			]
-		}
-	} catch (error) {
-		console.error('Error fetching documentation:', error)
-		const sectionList = Array.isArray(section) ? section.join(', ') : section
-		return {
-			content: [
-				{
-					type: 'text' as const,
-					text: `❌ Error fetching documentation for section(s) "${sectionList}": ${error instanceof Error ? error.message : String(error)}`
-				}
-			]
-		}
+// Helper function to get title from metadata or path
+function getTitleFromMetadata(
+	metadata: Record<string, unknown> | undefined,
+	fallbackPath: string
+): string {
+	if (metadata?.title && typeof metadata.title === 'string') {
+		return metadata.title
 	}
+	return extractTitleFromPath(fallbackPath)
 }
 
 export const handler = createMcpHandler(
@@ -254,7 +46,7 @@ export const handler = createMcpHandler(
 			'list_sections',
 			'Lists all available Svelte 5 and SvelteKit documentation sections in a structured format. Returns sections as a list of "* title: [section_title], path: [file_path]" - you can use either the title or path when querying a specific section via the get_documentation tool. Always run list_sections first for any query related to Svelte development to discover available content.',
 			{},
-			async () => listSectionsHandler()
+			listSectionsHandler
 		)
 
 		server.tool(
@@ -267,14 +59,216 @@ export const handler = createMcpHandler(
 						'The section name(s) to retrieve. Can search by title (e.g., "$state", "load functions") or file path (e.g., "docs/svelte/state.md"). Supports single string and array of strings'
 					)
 			},
-			async ({ section }) => getDocumentationHandler({ section })
+			getDocumentationHandler
+		)
+
+		// Main developer prompt with optional task parameter
+		server.registerPrompt(
+			'svelte-developer',
+			{
+				title: 'Svelte 5 Developer Assistant',
+				description:
+					'Expert-level guidance for Svelte 5 and SvelteKit development with optional task-specific focus',
+				argsSchema: {
+					task: z.string().optional().describe('Optional specific task or requirement to focus on')
+				}
+			},
+			({ task }) => {
+				const promptText = createSvelteDeveloperPromptWithTask(task)
+
+				return {
+					messages: [
+						{
+							role: 'user',
+							content: {
+								type: 'text',
+								text: promptText
+							}
+						}
+					]
+				}
+			}
+		)
+
+		// Register the template-based prompts
+		registerTemplatePrompts(server)
+
+		server.resource(
+			'svelte-doc',
+			new ResourceTemplate('svelte-llm://{+slug}', {
+				list: async () => {
+					const resources = []
+
+					// First, add preset resources
+					for (const preset of PRESET_CONFIGS) {
+						resources.push({
+							name: `📦 ${preset.title}`,
+							uri: `svelte-llm://${preset.id}`,
+							description: preset.description
+						})
+					}
+
+					// Then add individual documents
+					const documents = await ContentDbService.getContentByFilter({
+						path_pattern: 'apps/svelte.dev/content/docs/%'
+					})
+
+					logAlways(`Found ${documents.length} individual documents for resource listing`)
+
+					for (const doc of documents) {
+						const title = getTitleFromMetadata(doc.metadata, doc.path)
+						const cleanPath = cleanDocumentationPath(doc.path)
+
+						resources.push({
+							// Use title and clean path for better display, prefix with 📄 to distinguish from presets
+							name: `📄 ${title} (${cleanPath})`,
+							// Use cleaned path with prefix to avoid conflicts with preset IDs
+							uri: `svelte-llm://doc/${cleanPath}`,
+							// Add description from metadata if available
+							description: doc.metadata?.description as string | undefined
+						})
+					}
+
+					logAlways(
+						`Returning ${resources.length} total resources (${PRESET_CONFIGS.length} presets + ${documents.length} individual docs)`
+					)
+
+					return { resources }
+				},
+				complete: {
+					slug: async (query) => {
+						const suggestions = []
+
+						// Add preset completions first
+						for (const preset of PRESET_CONFIGS) {
+							if (
+								preset.id.toLowerCase().includes(query.toLowerCase()) ||
+								preset.title.toLowerCase().includes(query.toLowerCase())
+							) {
+								suggestions.push(preset.id)
+							}
+						}
+
+						// Then add individual document completions
+						const searchResults = await ContentDbService.searchAllContent(query)
+						const paths = searchResults.map((doc) => `doc/${cleanDocumentationPath(doc.path)}`)
+
+						suggestions.push(...paths)
+
+						logAlways(`Found ${suggestions.length} completions for query: ${query}`)
+
+						return suggestions
+					}
+				}
+			}),
+			async (uri, { slug }) => {
+				// If array for some reason, use the first element
+				const slugString = Array.isArray(slug) ? slug[0] : slug
+
+				logAlways(`Resource requested with slug: ${slugString}`)
+
+				// Check if this is a preset request
+				const preset = PRESET_CONFIGS.find((p) => p.id === slugString)
+				if (preset) {
+					logAlways(`Serving preset resource: ${preset.id}`)
+
+					// Get aggregated content for this preset
+					const content = await ContentDistilledDbService.getContentByPathPatterns(preset.patterns)
+
+					if (!content || content.trim().length === 0) {
+						throw new Error(
+							`No content found for preset: ${preset.id}. The distilled content may not be available yet.`
+						)
+					}
+
+					return {
+						contents: [
+							{
+								uri: uri.toString(),
+								type: 'text',
+								text: content,
+								metadata: {
+									title: preset.title,
+									description: preset.description,
+									type: 'preset',
+									id: preset.id
+								}
+							}
+						]
+					}
+				}
+
+				// Handle individual document requests (with 'doc/' prefix)
+				let documentSlug = slugString
+				if (slugString.startsWith('doc/')) {
+					documentSlug = slugString.substring(4) // Remove 'doc/' prefix
+				}
+
+				logAlways(`Serving individual document with slug: ${documentSlug}`)
+
+				// First try intelligent search (by title or partial path)
+				let document = await searchSectionInDb(documentSlug)
+
+				// If not found, try exact path match with cleaned path
+				if (!document) {
+					// Try to find by cleaned path - need to search all content and match cleaned paths
+					const allDocs = await ContentDbService.getContentByFilter({
+						path_pattern: 'apps/svelte.dev/content/docs/%'
+					})
+
+					document =
+						allDocs.find((doc) => cleanDocumentationPath(doc.path) === documentSlug) || null
+				}
+
+				// If still not found, try with the full path pattern (for backward compatibility)
+				if (!document && !documentSlug.startsWith('apps/svelte.dev/content/')) {
+					const fullPath = `apps/svelte.dev/content/docs/${documentSlug}`
+					document = await ContentDbService.getContentByPath(fullPath)
+				}
+
+				// If still not found, try direct database path match (for backward compatibility)
+				if (!document) {
+					document = await ContentDbService.getContentByPath(documentSlug)
+				}
+
+				if (!document) {
+					throw new Error(
+						`Document not found for slug: ${documentSlug}. Try using a document title (e.g., "$state") or a valid path.`
+					)
+				}
+
+				const title = getTitleFromMetadata(document.metadata, document.path)
+				const cleanPath = cleanDocumentationPath(document.path)
+
+				// Remove frontmatter from the content before returning it
+				const contentWithoutFrontmatter = removeFrontmatter(document.content)
+
+				logAlways(`Returning individual document: ${title} (${cleanPath})`)
+
+				return {
+					contents: [
+						{
+							uri: uri.toString(),
+							type: 'text',
+							text: contentWithoutFrontmatter,
+							// Include metadata in the response
+							metadata: {
+								title,
+								path: cleanPath,
+								originalPath: document.path,
+								type: 'document'
+							}
+						}
+					]
+				}
+			}
 		)
 	},
 	{},
 	{
 		maxDuration: 3600,
 		basePath: '/mcp',
-		verboseLogs: true,
+		verboseLogs: false,
 		redisUrl: env.REDIS_URL ? env.REDIS_URL : 'redis://127.0.0.1:6379'
 	}
 )

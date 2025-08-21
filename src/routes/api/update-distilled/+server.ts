@@ -1,55 +1,23 @@
 import { error, json } from '@sveltejs/kit'
 import { env } from '$env/dynamic/private'
 import { dev } from '$app/environment'
-import { presets } from '$lib/presets'
-import { fetchMarkdownFiles, minimizeContent } from '$lib/fetchMarkdown'
+import { presets, DEFAULT_REPOSITORY } from '$lib/presets'
+import {
+	minimizeContent,
+	fetchRepositoryTarball,
+	processMarkdownFromTarball
+} from '$lib/fetchMarkdown'
 import type { RequestHandler } from './$types'
-import { AnthropicProvider, type BatchProcessingOptions } from '$lib/anthropic'
-import { writeAtomicFile } from '$lib/fileCache'
-
-const DISTILLATION_PROMPT = `
-You are an expert in web development, specifically Svelte 5 and SvelteKit. Your task is to condense and distill the Svelte documentation into a concise format while preserving the most important information.
-Shorten the text information AS MUCH AS POSSIBLE while covering key concepts.
-
-Focus on:
-1. Code examples with short explanations of how they work
-2. Key concepts and APIs with their usage patterns
-3. Important gotchas and best practices
-4. Patterns that developers commonly use
-
-Remove:
-1. Redundant explanations
-2. Verbose content that can be simplified
-3. Marketing language
-4. Legacy or deprecated content
-5. Anything else that is not strictly necessary
-
-Keep your output in markdown format. Preserve code blocks with their language annotations.
-Maintain headings but feel free to combine or restructure sections to improve clarity.
-
-Make sure all code examples use Svelte 5 runes syntax ($state, $derived, $effect, etc.)
-
-Keep the following Svelte 5 syntax rules in mind:
-* There is no colon (:) in event modifiers. You MUST use "onclick" instead of "on:click".
-* Runes do not need to be imported, they are globals. 
-* $state() runes are always declared using let, never with const. 
-* When passing a function to $derived, you must always use $derived.by(() => ...). 
-* Error boundaries can only catch errors during component rendering and at the top level of an $effect inside the error boundary.
-* Error boundaries do not catch errors in onclick or other event handlers.
-
-IMPORTANT: All code examples MUST come from the documentation verbatim, do NOT create new code examples. Do NOT modify existing code examples.
-IMPORTANT: Because of changes in Svelte 5 syntax, do not include content from your existing knowledge, you may only use knowledge from the documentation to condense.
-
-Here is the documentation you must condense:
-
-`
-
-// Virtual preset basenames for the split content
-const SVELTE_DISTILLED_BASENAME = 'svelte-distilled'
-const SVELTEKIT_DISTILLED_BASENAME = 'sveltekit-distilled'
+import { AnthropicProvider, type AnthropicBatchRequest } from '$lib/anthropic'
+import { PresetDbService } from '$lib/server/presetDb'
+import { ContentDistilledDbService } from '$lib/server/contentDistilledDb'
+import { DistillablePreset } from '$lib/types/db'
+import type { DbDistillationJob, CreateContentDistilledInput } from '$lib/types/db'
+import { logAlways, logErrorAlways } from '$lib/log'
+import { cleanDocumentationPath } from '$lib/utils/pathUtils'
+import { DISTILLATION_PROMPT } from '$lib/utils/prompts'
 
 export const GET: RequestHandler = async ({ url }) => {
-	// Check secret key
 	const secretKey = url.searchParams.get('secret_key')
 	const envSecretKey = env.DISTILL_SECRET_KEY
 
@@ -61,7 +29,6 @@ export const GET: RequestHandler = async ({ url }) => {
 		throw error(403, 'Invalid secret key')
 	}
 
-	// Find the distilled preset
 	const distilledPreset = Object.values(presets).find(
 		(preset) => preset.distilled && preset.distilledFilenameBase === 'svelte-complete-distilled'
 	)
@@ -70,44 +37,41 @@ export const GET: RequestHandler = async ({ url }) => {
 		throw error(500, 'No distilled preset found')
 	}
 
+	let distillationJob: DbDistillationJob | null = null
+
 	try {
-		// Fetch all markdown files for the preset with their file paths
-		const filesWithPaths = await fetchMarkdownFiles(distilledPreset, true)
+		const { owner, repo } = DEFAULT_REPOSITORY
+		const tarballBuffer = await fetchRepositoryTarball(owner, repo)
 
-		// Filter out short files, only keep normal files
+		const filesWithPaths = (await processMarkdownFromTarball(
+			tarballBuffer,
+			distilledPreset,
+			true
+		)) as Array<{
+			path: string
+			content: string
+		}>
+
 		const originalFileCount = filesWithPaths.length
-		let filesToProcess = filesWithPaths.filter((file) =>
-			typeof file === 'string' ? false : file.content.length >= 200
-		)
+		let filesToProcess = filesWithPaths.filter((file) => file.content.length >= 200)
+		const shortFilesRemoved = originalFileCount - filesToProcess.length
 
-		if (dev) {
-			console.log(`Total files: ${originalFileCount}`)
-			console.log(
-				`Filtered out ${originalFileCount - filesToProcess.length} short files (< 200 chars)`
-			)
-			console.log(`Processing ${filesToProcess.length} normal files`)
-		}
+		logAlways(`Total files: ${originalFileCount}`)
+		logAlways(`Filtered out ${originalFileCount - filesToProcess.length} short files (< 200 chars)`)
+		logAlways(`Processing ${filesToProcess.length} normal files`)
 
 		if (dev) {
 			// DEBUG: Limit to first 10 normal files for debugging
 			filesToProcess = filesToProcess.slice(0, 10)
-			console.log(
+			logAlways(
 				`Using ${filesToProcess.length} files for LLM distillation (limited to 10 for debugging)`
 			)
 		}
 
-		// Apply the minimize config to each file's content if the preset has a minimize configuration
 		if (distilledPreset.minimize) {
-			if (dev) {
-				console.log(`Applying minimize configuration before LLM processing`)
-			}
+			logAlways(`Applying minimize configuration before LLM processing`)
 
 			filesToProcess = filesToProcess.map((fileObj) => {
-				if (typeof fileObj === 'string') {
-					return fileObj // Should not happen with includePathInfo=true
-				}
-
-				// Apply minimization to the content
 				const minimized = minimizeContent(fileObj.content, distilledPreset.minimize)
 
 				return {
@@ -116,140 +80,273 @@ export const GET: RequestHandler = async ({ url }) => {
 				}
 			})
 
-			if (dev) {
-				console.log(`Content minimized according to preset configuration`)
-			}
+			logAlways(`Content minimized according to preset configuration`)
 		}
 
-		// Initialize Anthropic client
 		const anthropic = new AnthropicProvider('claude-sonnet-4-20250514')
 
-		// Process files using shared batch processing function
-		const options: BatchProcessingOptions = {
-			maxTokens: 8192,
-			temperature: 0
+		distillationJob = await PresetDbService.createDistillationJob({
+			preset_name: DistillablePreset.SVELTE_COMPLETE_DISTILLED,
+			status: 'pending',
+			model_used: anthropic.getModelIdentifier(),
+			total_files: filesToProcess.length,
+			minimize_applied: !!distilledPreset.minimize,
+			metadata: {
+				originalFileCount,
+				filteredFiles: originalFileCount - filesToProcess.length
+			}
+		})
+
+		const batchRequests: AnthropicBatchRequest[] = filesToProcess.map((fileObj, index) => {
+			const content = fileObj.content
+			const fullPrompt = DISTILLATION_PROMPT + content
+
+			return {
+				custom_id: `file-${index}`,
+				params: {
+					model: anthropic.getModelIdentifier(),
+					max_tokens: 8192,
+					messages: [
+						{
+							role: 'user',
+							content: fullPrompt
+						}
+					],
+					temperature: 0 // Low temperature for consistent results
+				}
+			}
+		})
+
+		const batchResponse = await anthropic.createBatch(batchRequests)
+
+		try {
+			distillationJob = await PresetDbService.updateDistillationJob(distillationJob.id, {
+				status: 'processing',
+				batch_id: batchResponse.id
+			})
+		} catch (dbError) {
+			logErrorAlways('Failed to update distillation job:', dbError)
 		}
 
-		const resultProcessor = (result: any, fileObj: string | { path: string; content: string }, index: number) => {
-			const outputContent = result.result.message.content[0].text
-			return {
-				index,
-				path: typeof fileObj === 'string' ? 'unknown' : fileObj.path,
-				content: outputContent
+		let batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+
+		while (batchStatus.processing_status === 'in_progress') {
+			await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds before polling again
+			batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+
+			logAlways(
+				`Batch status: ${batchStatus.processing_status}, Succeeded: ${batchStatus.request_counts.succeeded}, Processing: ${batchStatus.request_counts.processing}`
+			)
+
+			try {
+				await PresetDbService.updateDistillationJob(distillationJob.id, {
+					processed_files:
+						batchStatus.request_counts.succeeded + batchStatus.request_counts.errored,
+					successful_files: batchStatus.request_counts.succeeded
+				})
+			} catch (dbError) {
+				logErrorAlways('Failed to update job progress:', dbError)
 			}
 		}
 
-		const { debugData, processedResults } = await anthropic.processBatchWithFiles(
-			filesToProcess,
-			DISTILLATION_PROMPT,
-			options,
-			originalFileCount,
-			!!distilledPreset.minimize,
-			resultProcessor
-		)
+		if (!batchStatus.results_url) {
+			throw error(500, 'Batch completed but no results URL available')
+		}
 
-		// Sort by index to maintain original order
+		const results = await anthropic.getBatchResults(batchStatus.results_url)
+
+		let totalInputTokens = 0
+		let totalOutputTokens = 0
+
+		const processedResults = results
+			.filter((result) => result.result.type === 'succeeded')
+			.map((result) => {
+				const index = parseInt(result.custom_id.split('-')[1])
+				const fileObj = filesToProcess[index]
+
+				if (result.result.type !== 'succeeded' || !result.result.message) {
+					return {
+						index,
+						path: fileObj.path,
+						content: '',
+						error: 'Failed or no message'
+					}
+				}
+
+				const outputContent = result.result.message.content[0].text
+
+				if (result.result.message.usage) {
+					totalInputTokens += result.result.message.usage.input_tokens || 0
+					totalOutputTokens += result.result.message.usage.output_tokens || 0
+				}
+
+				return {
+					index,
+					path: fileObj.path,
+					content: outputContent
+				}
+			})
+
 		processedResults.sort((a, b) => a.index - b.index)
 
-		// Filter successful responses (content should always exist due to our result processor)
 		const successfulResults = processedResults.filter((result) => result.content)
 
-		// Split results into Svelte and SvelteKit categories
-		const svelteResults = successfulResults.filter((result) => result.path.includes('docs/svelte/'))
+		// Split results into Svelte and SvelteKit categories based on the new path structure
+		const svelteResults = successfulResults.filter((result) =>
+			result.path.includes('apps/svelte.dev/content/docs/svelte/')
+		)
+		const svelteKitResults = successfulResults.filter((result) =>
+			result.path.includes('apps/svelte.dev/content/docs/kit/')
+		)
 
-		const svelteKitResults = successfulResults.filter((result) => result.path.includes('docs/kit/'))
-
-		// Create content for each category
 		const createContentFromResults = (results: typeof successfulResults) => {
-			const contentParts = results.map((result) => `## ${result.path}\n\n${result.content}`)
+			const contentParts = results.map((result) => {
+				// Use the unified path utility to clean paths for display
+				const cleanPath = cleanDocumentationPath(result.path)
+				return `## ${cleanPath}\n\n${result.content}`
+			})
 			return contentParts.join('\n\n')
 		}
 
-		// Generate combined content
 		const distilledContent = createContentFromResults(successfulResults)
 
-		// Generate Svelte content
 		const svelteContent = createContentFromResults(svelteResults)
 
-		// Generate SvelteKit content
 		const svelteKitContent = createContentFromResults(svelteKitResults)
 
-		// Add prompt if it exists
 		const prompt = distilledPreset.prompt
-			? `\n\nInstructions for LLMs: <SYSTEM>${distilledPreset.prompt}</SYSTEM>`
+			? `\n\nInstructions for LLMs: <s>${distilledPreset.prompt}</s>`
 			: ''
 
-		// Finalize content with prompts
 		const finalContent = distilledContent + prompt
 		const finalSvelteContent = svelteContent + prompt
 		const finalSvelteKitContent = svelteKitContent + prompt
 
-		// Generate filenames
+		logAlways(`Storing ${successfulResults.length} individual distilled files`)
+		const distilledContentInputs: CreateContentDistilledInput[] = successfulResults.map(
+			(result) => ({
+				path: result.path,
+				filename: ContentDistilledDbService.extractFilename(result.path),
+				content: result.content,
+				size_bytes: new TextEncoder().encode(result.content).length,
+				metadata: {}
+			})
+		)
+
+		await ContentDistilledDbService.batchUpsertContentDistilled(distilledContentInputs)
+
+		const currentPaths = successfulResults.map((result) => result.path)
+		const cleanedUpCount = await ContentDistilledDbService.cleanupUnusedEntries(currentPaths)
+		logAlways(`Cleaned up ${cleanedUpCount} unused distilled content entries`)
+
 		const today = new Date()
 		const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
 			today.getDate()
 		).padStart(2, '0')}`
 
-		// Combined content file paths
-		const latestFilename = `outputs/${distilledPreset.distilledFilenameBase}-latest.md`
-		const datedFilename = `outputs/${distilledPreset.distilledFilenameBase}-${dateStr}.md`
+		try {
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTE_COMPLETE_DISTILLED,
+				version: 'latest',
+				content: finalContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalContent).length / 1024),
+				document_count: successfulResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		// Svelte content file paths
-		const svelteLatestFilename = `outputs/${SVELTE_DISTILLED_BASENAME}-latest.md`
-		const svelteDatedFilename = `outputs/${SVELTE_DISTILLED_BASENAME}-${dateStr}.md`
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTE_COMPLETE_DISTILLED,
+				version: dateStr,
+				content: finalContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalContent).length / 1024),
+				document_count: successfulResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		// SvelteKit content file paths
-		const svelteKitLatestFilename = `outputs/${SVELTEKIT_DISTILLED_BASENAME}-latest.md`
-		const svelteKitDatedFilename = `outputs/${SVELTEKIT_DISTILLED_BASENAME}-${dateStr}.md`
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTE_DISTILLED,
+				version: 'latest',
+				content: finalSvelteContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalSvelteContent).length / 1024),
+				document_count: svelteResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		// Debug file path
-		const debugFilename = `outputs/${distilledPreset.distilledFilenameBase}-debug.json`
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTE_DISTILLED,
+				version: dateStr,
+				content: finalSvelteContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalSvelteContent).length / 1024),
+				document_count: svelteResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		// Write files using writeAtomicFile from fileCache.ts
-		await writeAtomicFile(latestFilename, finalContent)
-		await writeAtomicFile(datedFilename, finalContent)
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTEKIT_DISTILLED,
+				version: 'latest',
+				content: finalSvelteKitContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalSvelteKitContent).length / 1024),
+				document_count: svelteKitResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		await writeAtomicFile(svelteLatestFilename, finalSvelteContent)
-		await writeAtomicFile(svelteDatedFilename, finalSvelteContent)
+			await PresetDbService.createDistillation({
+				preset_name: DistillablePreset.SVELTEKIT_DISTILLED,
+				version: dateStr,
+				content: finalSvelteKitContent,
+				size_kb: Math.floor(new TextEncoder().encode(finalSvelteKitContent).length / 1024),
+				document_count: svelteKitResults.length,
+				distillation_job_id: distillationJob?.id
+			})
 
-		await writeAtomicFile(svelteKitLatestFilename, finalSvelteKitContent)
-		await writeAtomicFile(svelteKitDatedFilename, finalSvelteKitContent)
-
-		await writeAtomicFile(debugFilename, JSON.stringify(debugData, null, 2))
+			await PresetDbService.updateDistillationJob(distillationJob.id, {
+				status: 'completed',
+				processed_files: filesToProcess.length,
+				successful_files: successfulResults.length,
+				total_input_tokens: totalInputTokens,
+				total_output_tokens: totalOutputTokens,
+				completed_at: new Date()
+			})
+		} catch (dbError) {
+			logErrorAlways('Failed to store distillations in database:', dbError)
+		}
 
 		return json({
 			success: true,
 			totalFiles: originalFileCount,
-			shortFilesRemoved: originalFileCount - filesToProcess.length,
+			shortFilesRemoved,
 			filesProcessed: filesToProcess.length,
 			minimizeApplied: !!distilledPreset.minimize,
 			resultsReceived: processedResults.length,
 			successfulResults: successfulResults.length,
 			svelteResults: svelteResults.length,
 			svelteKitResults: svelteKitResults.length,
+			distillationJobId: distillationJob?.id,
+			tokenUsage: {
+				totalInputTokens,
+				totalOutputTokens
+			},
 			bytes: {
 				combined: finalContent.length,
 				svelte: finalSvelteContent.length,
 				svelteKit: finalSvelteKitContent.length
-			},
-			files: {
-				combined: {
-					latest: latestFilename,
-					dated: datedFilename
-				},
-				svelte: {
-					latest: svelteLatestFilename,
-					dated: svelteDatedFilename
-				},
-				svelteKit: {
-					latest: svelteKitLatestFilename,
-					dated: svelteKitDatedFilename
-				},
-				debug: debugFilename
 			}
 		})
 	} catch (e) {
-		console.error('Error in distillation process:', e)
+		// Update job as failed
+		if (distillationJob) {
+			try {
+				await PresetDbService.updateDistillationJob(distillationJob.id, {
+					status: 'failed',
+					completed_at: new Date(),
+					error_message: e instanceof Error ? e.message : String(e)
+				})
+			} catch (dbError) {
+				logErrorAlways('Failed to update job as failed:', dbError)
+			}
+		}
+
+		logErrorAlways('Error in distillation process:', e)
 		throw error(500, `Distillation failed: ${e instanceof Error ? e.message : String(e)}`)
 	}
 }

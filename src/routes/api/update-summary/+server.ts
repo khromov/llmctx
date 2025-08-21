@@ -1,11 +1,16 @@
 import { error, json } from '@sveltejs/kit'
 import { env } from '$env/dynamic/private'
 import { dev } from '$app/environment'
-import { presets } from '$lib/presets'
-import { fetchMarkdownFiles, minimizeContent } from '$lib/fetchMarkdown'
+import { presets, DEFAULT_REPOSITORY } from '$lib/presets'
+import {
+	minimizeContent,
+	fetchRepositoryTarball,
+	processMarkdownFromTarball
+} from '$lib/fetchMarkdown'
 import type { RequestHandler } from './$types'
-import { AnthropicProvider, type BatchProcessingOptions } from '$lib/anthropic'
-import { writeAtomicFile } from '$lib/fileCache'
+import { AnthropicProvider, type AnthropicBatchRequest } from '$lib/anthropic'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 
 const SUMMARY_PROMPT = `
 You are tasked with creating very short summaries of Svelte 5 and SvelteKit documentation pages.
@@ -48,22 +53,31 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 
 	// Find the distilled preset to use as source
-	const sourcePreset = Object.values(presets).find(
+	const distilledPreset = Object.values(presets).find(
 		(preset) => preset.distilled && preset.distilledFilenameBase === 'svelte-complete-distilled'
 	)
 
-	if (!sourcePreset) {
-		throw error(500, 'No source preset found for summary generation')
+	if (!distilledPreset) {
+		throw error(500, 'No distilled preset found')
 	}
 
 	try {
-		// Fetch all markdown files for the preset with their file paths
-		const filesWithPaths = await fetchMarkdownFiles(sourcePreset, true)
+		const { owner, repo } = DEFAULT_REPOSITORY
+		const tarballBuffer = await fetchRepositoryTarball(owner, repo)
+
+		const filesWithPaths = (await processMarkdownFromTarball(
+			tarballBuffer,
+			distilledPreset,
+			true
+		)) as Array<{
+			path: string
+			content: string
+		}>
 
 		// Filter out short files, only keep normal files
 		const originalFileCount = filesWithPaths.length
-		let filesToProcess = filesWithPaths.filter((file) =>
-			typeof file === 'string' ? false : file.content.length >= 200
+		let filesToProcess = filesWithPaths.filter((file: { path: string; content: string }) =>
+			file.content.length >= 200
 		)
 
 		if (dev) {
@@ -76,25 +90,21 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		if (dev) {
 			// DEBUG: Limit to first 10 normal files for debugging
-			// filesToProcess = filesToProcess.slice(0, 10)
-			//console.log(
-			//	`Using ${filesToProcess.length} files for summary generation (limited to 10 for debugging)`
-			//)
+			filesToProcess = filesToProcess.slice(0, 10)
+			console.log(
+				`Using ${filesToProcess.length} files for LLM summarization (limited to 10 for debugging)`
+			)
 		}
 
 		// Apply the minimize config to each file's content if the preset has a minimize configuration
-		if (sourcePreset.minimize) {
+		if (distilledPreset.minimize) {
 			if (dev) {
-				console.log(`Applying minimize configuration before summary generation`)
+				console.log(`Applying minimize configuration before LLM processing`)
 			}
 
-			filesToProcess = filesToProcess.map((fileObj) => {
-				if (typeof fileObj === 'string') {
-					return fileObj // Should not happen with includePathInfo=true
-				}
-
+			filesToProcess = filesToProcess.map((fileObj: { path: string; content: string }) => {
 				// Apply minimization to the content
-				const minimized = minimizeContent(fileObj.content, sourcePreset.minimize)
+				const minimized = minimizeContent(fileObj.content, distilledPreset.minimize)
 
 				return {
 					...fileObj,
@@ -108,55 +118,88 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 
 		// Initialize Anthropic client
-		const anthropic = new AnthropicProvider('claude-sonnet-4-20250514')
+		const anthropic = new AnthropicProvider('claude-3-5-sonnet-20241022')
 
-		// Process files using shared batch processing function
-		const options: BatchProcessingOptions = {
-			maxTokens: 256, // Much smaller since we only need short summaries
-			temperature: 0
-		}
+		// Prepare batch requests
+		const batchRequests: AnthropicBatchRequest[] = filesToProcess.map((fileObj: { path: string; content: string }, index: number) => {
+			const content = fileObj.content
+			const fullPrompt = SUMMARY_PROMPT + content
 
-		const resultProcessor = (result: any, fileObj: string | { path: string; content: string }, index: number) => {
-			const outputSummary = result.result.message.content[0].text.trim()
 			return {
-				index,
-				path: typeof fileObj === 'string' ? 'unknown' : fileObj.path,
-				summary: outputSummary
+				custom_id: `file-${index}`,
+				params: {
+					model: anthropic.getModelIdentifier(),
+					max_tokens: 200, // Very small since we want short summaries
+					messages: [
+						{
+							role: 'user',
+							content: fullPrompt
+						}
+					],
+					temperature: 0 // Low temperature for consistent results
+				}
+			}
+		})
+
+		// Create and process batch
+		const batchResponse = await anthropic.createBatch(batchRequests)
+
+		// Poll for completion
+		let batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+
+		while (batchStatus.processing_status === 'in_progress') {
+			await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds before polling again
+			batchStatus = await anthropic.getBatchStatus(batchResponse.id)
+
+			// Optional: Log progress if in development mode
+			if (dev) {
+				console.log(
+					`Batch status: ${batchStatus.processing_status}, Succeeded: ${batchStatus.request_counts.succeeded}, Processing: ${batchStatus.request_counts.processing}`
+				)
 			}
 		}
 
-		const { debugData, processedResults } = await anthropic.processBatchWithFiles(
-			filesToProcess,
-			SUMMARY_PROMPT,
-			options,
-			originalFileCount,
-			!!sourcePreset.minimize,
-			resultProcessor
-		)
-
-		// Sort by index to maintain original order
-		processedResults.sort((a, b) => a.index - b.index)
-
-		// Filter successful responses (summary should always exist due to our result processor)
-		const successfulResults = processedResults.filter((result) => result.summary)
-
-		// Split results into Svelte and SvelteKit categories
-		const svelteResults = successfulResults.filter((result) => result.path.includes('docs/svelte/'))
-		const svelteKitResults = successfulResults.filter((result) => result.path.includes('docs/kit/'))
-
-		// Create content for each category in format: path: summary
-		const createContentFromResults = (results: typeof successfulResults) => {
-			return results.map((result) => `${result.path}: ${result.summary}`).join('\n')
+		// Get results
+		if (!batchStatus.results_url) {
+			throw error(500, 'Batch completed but no results URL available')
 		}
 
-		// Generate combined content
-		const summaryContent = createContentFromResults(successfulResults)
+		const results = await anthropic.getBatchResults(batchStatus.results_url)
 
-		// Generate Svelte content
-		const svelteContent = createContentFromResults(svelteResults)
+		// Process results
+		const processedResults = results
+			.map((result) => {
+				const index = parseInt(result.custom_id.split('-')[1])
+				const fileObj = filesToProcess[index]
 
-		// Generate SvelteKit content
-		const svelteKitContent = createContentFromResults(svelteKitResults)
+				if (result.result.type !== 'succeeded' || !result.result.message) {
+					return {
+						index,
+						path: fileObj.path,
+						summary: '',
+						error: 'Failed or no message'
+					}
+				}
+
+				const outputContent = result.result.message.content[0].text
+
+				return {
+					index,
+					path: fileObj.path,
+					summary: outputContent.trim()
+				}
+			})
+			.sort((a, b) => a.index - b.index)
+
+		// Filter successful responses
+		const successfulResults = processedResults.filter((result) => result.summary)
+
+		// Create the summary content
+		const summaryParts = successfulResults.map((result) => {
+			return `${result.path}: ${result.summary}`
+		})
+
+		const summaryContent = summaryParts.join('\n')
 
 		// Generate filenames
 		const today = new Date()
@@ -164,59 +207,36 @@ export const GET: RequestHandler = async ({ url }) => {
 			today.getDate()
 		).padStart(2, '0')}`
 
-		// Summary content file paths
+		// Summary file paths
 		const latestFilename = `outputs/svelte-summary-latest.md`
 		const datedFilename = `outputs/svelte-summary-${dateStr}.md`
 
-		// Svelte content file paths
-		const svelteLatestFilename = `outputs/svelte-summary-svelte-latest.md`
-		const svelteDatedFilename = `outputs/svelte-summary-svelte-${dateStr}.md`
+		// Write files atomically
+		async function writeAtomicFile(filePath: string, content: string) {
+			const dir = path.dirname(filePath)
+			await mkdir(dir, { recursive: true })
+			await writeFile(filePath, content, 'utf-8')
+		}
 
-		// SvelteKit content file paths
-		const svelteKitLatestFilename = `outputs/svelte-summary-sveltekit-latest.md`
-		const svelteKitDatedFilename = `outputs/svelte-summary-sveltekit-${dateStr}.md`
-
-		// Debug file path
-		const debugFilename = `outputs/svelte-summary-debug.json`
-
-		// Write files using writeAtomicFile from fileCache.ts
 		await writeAtomicFile(latestFilename, summaryContent)
 		await writeAtomicFile(datedFilename, summaryContent)
-
-		await writeAtomicFile(svelteLatestFilename, svelteContent)
-		await writeAtomicFile(svelteDatedFilename, svelteContent)
-
-		await writeAtomicFile(svelteKitLatestFilename, svelteKitContent)
-		await writeAtomicFile(svelteKitDatedFilename, svelteKitContent)
-
-		await writeAtomicFile(debugFilename, JSON.stringify(debugData, null, 2))
 
 		return json({
 			success: true,
 			totalFiles: originalFileCount,
 			shortFilesRemoved: originalFileCount - filesToProcess.length,
 			filesProcessed: filesToProcess.length,
-			minimizeApplied: !!sourcePreset.minimize,
+			minimizeApplied: !!distilledPreset.minimize,
 			resultsReceived: processedResults.length,
 			successfulResults: successfulResults.length,
-			svelteResults: svelteResults.length,
-			svelteKitResults: svelteKitResults.length,
-			averageSummaryLength:
-				successfulResults.reduce((acc, r) => acc + r.summary.length, 0) / successfulResults.length,
+			bytes: {
+				summary: summaryContent.length
+			},
 			files: {
-				combined: {
+				summary: {
 					latest: latestFilename,
 					dated: datedFilename
-				},
-				svelte: {
-					latest: svelteLatestFilename,
-					dated: svelteDatedFilename
-				},
-				svelteKit: {
-					latest: svelteKitLatestFilename,
-					dated: svelteKitDatedFilename
-				},
-				debug: debugFilename
+				}
 			}
 		})
 	} catch (e) {

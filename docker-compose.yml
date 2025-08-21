@@ -1,4 +1,10 @@
 services:
+  mcp-server:
+    image: ghcr.io/khromov/context-coder:full
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./:/app
   redis:
     image: 'redis:8.0.2-alpine'
     ports:
@@ -11,3 +17,27 @@ services:
       - REDIS_HOSTS=local:redis:6379
     ports:
       - '8081:8081'
+  db:
+    image: postgres:14-alpine
+    container_name: llmctx_db
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./.db/data:/var/lib/postgresql/data
+  adminer:
+    image: michalhosna/adminer
+    container_name: llmctx_adminer
+    ports:
+      - '8080:8080'
+    environment:
+      ADMINER_DB: db
+      ADMINER_DRIVER: pgsql
+      ADMINER_PASSWORD: admin
+      ADMINER_SERVER: db
+      ADMINER_USERNAME: admin
+      ADMINER_AUTOLOGIN: 1
+      ADMINER_NAME: Adminer

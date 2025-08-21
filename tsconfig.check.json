@@ -1,0 +1,9 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"verbatimModuleSyntax": false,
+		"isolatedModules": false,
+		"useUnknownInCatchVariables": false,
+		"skipLibCheck": true
+	}
+}

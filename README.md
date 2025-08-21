@@ -1,28 +1,35 @@
 ## svelte-llm
 
-LLM presets for Svelte 5 and SvelteKit. Visit the site at [svelte-llm.khromov.se](https://svelte-llm.khromov.se).
+LLM presets and MCP for Svelte 5 and SvelteKit. Visit the site at [svelte-llm.stanislav.garden](https://svelte-llm.stanislav.garden).
 
 ## MCP Endpoint
 
 This service provides an MCP (Model Context Protocol) endpoint for use with AI assistants:
 
-- **SSE (Claude Desktop)**: `https://svelte-llm.khromov.se/mcp/sse`
-- **Streamable HTTP (most other clients)**: `https://svelte-llm.khromov.se/mcp/mcp`
-
-OG image from https://dynamic-og-image-generator.vercel.app/
+- **SSE (Claude Desktop)**: `https://svelte-llm.stanislav.garden/mcp/sse`
+- **Streamable HTTP (most other clients)**: `https://svelte-llm.stanislav.garden/mcp/mcp`
 
 # Setup
 
-- Create a `.env` file with the content `GITHUB_TOKEN=`
+- Create a `.env` file with the content:
+  ```
+  GITHUB_TOKEN=
+  DB_URL=postgres://admin:admin@localhost:5432/db
+  ```
 - Create [a Classic GitHub token](https://github.com/settings/tokens). It must have `public_repo` permissions.
 - Enter this in the .env file.
+- Run `docker-compose up`
+- Run:
 
-# llmctx
+```
+nvm use
+npm i
+npm run dev
+```
 
-llmctx transforms technical documentation into AI-ready formats. It provides a simple way to access condensed, LLM-friendly versions of popular framework and library documentation through preset URLs. This makes it easier for developers to use AI coding assistants like Cursor or Zed with accurate, up-to-date context from official documentation sources.
+- Run database migrations: visit http://localhost:5173/api/migrate in your browser after starting the dev server.
 
-- Preset URLs for quick access to LLM-optimized documentation
-- Regularly updated content from official documentation
+You can also visit http://localhost:5173/admin to see all the "hidden" endpoints (default password = "secret")
 
 ## Supported presets
 
@@ -65,3 +72,9 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 NODE_OPTIONS="--insecure-http-parser" npx @modelc
 ```
 
 http://127.0.0.1:6274
+
+You can also use GitHub Copilot in Agent mode to try the agent locally, see `.vscode/mcp.json` for info on how that works.
+
+### Misc
+
+OG image from https://dynamic-og-image-generator.vercel.app/

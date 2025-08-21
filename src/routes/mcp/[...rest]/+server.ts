@@ -3,6 +3,7 @@ import { handler } from '$lib/mcpHandler'
 
 export const GET: RequestHandler = async ({ request }) => {
 	return handler(request)
+	// TODO: Run GC?
 }
 
 export const POST: RequestHandler = async ({ request }) => {

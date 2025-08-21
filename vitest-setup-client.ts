@@ -14,5 +14,3 @@ Object.defineProperty(window, 'matchMedia', {
 		dispatchEvent: vi.fn()
 	}))
 })
-
-// add more mocks here if you need them

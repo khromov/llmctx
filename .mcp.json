@@ -1,0 +1,14 @@
+{
+	"DISABLED": {
+		"context-coder": {
+			"command": "npx",
+			"args": ["-y", "context-coder", "--mini", "--stdio"]
+		}
+	},
+	"mcpServers": {
+		"svelte-llm-local": {
+			"type": "sse",
+			"url": "http://localhost:5173/mcp/sse"
+		}
+	}
+}

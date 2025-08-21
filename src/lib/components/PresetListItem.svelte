@@ -1,32 +1,71 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import toast from 'svelte-french-toast'
+	import CopyIcon from './CopyIcon.svelte'
+	import DownloadIcon from './DownloadIcon.svelte'
 
-	let { title, key, description, distilledVersions, loadingVersions, distilledError } = $props<{
+	let { title, key, description, presetSizePromise, distilledVersionsPromise } = $props<{
 		title: string
 		key: string
 		description?: string
-		distilledVersions?: Array<{ filename: string; date: string; path: string; sizeKb: number }>
-		loadingVersions?: boolean
-		distilledError?: string | null
+		presetSizePromise?: Promise<{ key: string; sizeKb: number | null; error?: string }>
+		distilledVersionsPromise?: Promise<{
+			key: string
+			versions: Array<{ filename: string; date: string; path: string; sizeKb: number }>
+			error?: string
+		}>
 	}>()
 
 	let sizeKb = $state<number | undefined>(undefined)
-	let sizeLoading = $state<boolean | undefined>(undefined)
+	let sizeLoading = $state<boolean>(true)
 	let sizeError = $state<string | undefined>(undefined)
 	let dialog = $state<HTMLDialogElement | null>(null)
 
+	// Distilled versions state
+	let distilledVersions = $state<
+		Array<{ filename: string; date: string; path: string; sizeKb: number }>
+	>([])
+	let loadingVersions = $state<boolean>(true)
+	let distilledError = $state<string | null>(null)
+
+	// Use the streamed promise from the server load function for size
 	onMount(async () => {
-		try {
-			sizeLoading = true
-			const response = await fetch(`/${key}/size`)
-			if (!response.ok) throw new Error('Failed to fetch size')
-			const data = await response.json()
-			sizeKb = data.sizeKb
-		} catch {
-			sizeError = 'Failed to load size'
-		} finally {
+		if (presetSizePromise) {
+			try {
+				const result = await presetSizePromise
+				if (result.error) {
+					sizeError = result.error
+				} else {
+					sizeKb = result.sizeKb || undefined
+				}
+			} catch (error) {
+				sizeError = 'Failed to load size'
+			} finally {
+				sizeLoading = false
+			}
+		} else {
+			// No promise provided - this shouldn't happen in normal operation
+			sizeError = 'Size data not available'
 			sizeLoading = false
+		}
+
+		// Use the streamed promise from the server load function for distilled versions
+		if (distilledVersionsPromise) {
+			try {
+				const result = await distilledVersionsPromise
+				if (result.error) {
+					distilledError = result.error
+				} else {
+					distilledVersions = result.versions
+				}
+			} catch (error) {
+				distilledError = error instanceof Error ? error.message : 'Failed to load versions'
+			} finally {
+				loadingVersions = false
+			}
+		} else {
+			// No promise provided - this preset doesn't have distilled versions
+			loadingVersions = false
 		}
 	})
 
@@ -84,25 +123,11 @@
 	<div class="preset-actions">
 		<div class="action-buttons">
 			<a href="/{key}" class="download-button">
-				<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-					<path
-						d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"
-					/>
-					<path
-						d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"
-					/>
-				</svg>
+				<DownloadIcon />
 				Download
 			</a>
 			<button class="copy-button" onclick={copyToClipboard}>
-				<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-					<path
-						d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"
-					/>
-					<path
-						d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"
-					/>
-				</svg>
+				<CopyIcon />
 				Copy preset to clipboard
 			</button>
 		</div>
@@ -118,7 +143,7 @@
 		</div>
 	</div>
 
-	{#if distilledVersions !== undefined}
+	{#if distilledVersionsPromise}
 		{#if loadingVersions}
 			<div class="versions-status"><em>Loading previous distilled versions...</em></div>
 		{:else if distilledError}

@@ -2,6 +2,7 @@ import type { LLMProvider } from './llm.ts'
 import { Anthropic } from '@anthropic-ai/sdk'
 import { env } from '$env/dynamic/private'
 import { dev } from '$app/environment'
+import { logErrorAlways, logWarningAlways, log } from '$lib/log'
 
 // Batch API interfaces
 export interface AnthropicBatchRequest {
@@ -13,7 +14,7 @@ export interface AnthropicBatchRequest {
 			role: 'user' | 'assistant'
 			content: string | { type: string; text: string }[]
 		}[]
-		[key: string]: unknown // Other optional parameters
+		[key: string]: unknown
 	}
 }
 
@@ -103,15 +104,7 @@ export class AnthropicProvider implements LLMProvider {
 	private baseUrl: string
 	private apiKey: string
 	name = 'Anthropic'
-	private readonly availableModels = [
-		'claude-sonnet-4-20250514',
-		'claude-opus-4-20250514',
-		'claude-3-7-sonnet-20250219',
-		'claude-3-5-sonnet-20241022', // 3.5 v2
-		'claude-3-5-sonnet-20240620', // 3.5
-		'claude-3-5-haiku-20241022',
-		'claude-3-opus-20240229'
-	]
+	private readonly availableModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514']
 
 	constructor(modelId?: string) {
 		const apiKey = env.ANTHROPIC_API_KEY
@@ -120,15 +113,10 @@ export class AnthropicProvider implements LLMProvider {
 		}
 		this.apiKey = apiKey
 		this.client = new Anthropic({ apiKey, timeout: 900000 })
-		this.modelId = modelId || this.availableModels[0] // Default to claude-3-7-sonnet
+		this.modelId = modelId || this.availableModels[0]
 		this.baseUrl = 'https://api.anthropic.com/v1'
 	}
 
-	/**
-	 * Generate code from a prompt using Anthropic Claude
-	 * @param prompt The prompt to send to the LLM
-	 * @returns The generated code
-	 */
 	async generateResponse(prompt: string, temperature?: number): Promise<string> {
 		try {
 			const completion = await this.client.messages.create({
@@ -148,36 +136,24 @@ export class AnthropicProvider implements LLMProvider {
 				temperature: temperature || 0.7
 			})
 
-			return completion.content[0]?.text || ''
+			const firstContent = completion.content[0]
+			return firstContent?.type === 'text' ? firstContent.text : ''
 		} catch (error) {
-			console.error('Error generating code with Anthropic:', error)
+			logErrorAlways('Error generating code with Anthropic:', error)
 			throw new Error(
 				`Failed to generate code: ${error instanceof Error ? error.message : String(error)}`
 			)
 		}
 	}
 
-	/**
-	 * Get all available models for this provider
-	 * @returns Array of model identifiers
-	 */
 	getModels(): string[] {
 		return [...this.availableModels]
 	}
 
-	/**
-	 * Get the model identifier that was used for generation
-	 * @returns The model identifier string
-	 */
 	getModelIdentifier(): string {
 		return this.modelId
 	}
 
-	/**
-	 * Create a new batch of requests
-	 * @param requests Array of batch requests
-	 * @returns The batch response
-	 */
 	async createBatch(requests: AnthropicBatchRequest[]): Promise<AnthropicBatchResponse> {
 		try {
 			const response = await fetch(`${this.baseUrl}/messages/batches`, {
@@ -199,20 +175,13 @@ export class AnthropicProvider implements LLMProvider {
 
 			return await response.json()
 		} catch (error) {
-			console.error('Error creating batch with Anthropic:', error)
+			logErrorAlways('Error creating batch with Anthropic:', error)
 			throw new Error(
 				`Failed to create batch: ${error instanceof Error ? error.message : String(error)}`
 			)
 		}
 	}
 
-	/**
-	 * Get the status of a batch
-	 * @param batchId The ID of the batch
-	 * @param maxRetries Maximum number of retry attempts (default: 10)
-	 * @param retryDelay Delay between retries in milliseconds (default: 30000)
-	 * @returns The batch status
-	 */
 	async getBatchStatus(
 		batchId: string,
 		maxRetries = 10,
@@ -242,8 +211,7 @@ export class AnthropicProvider implements LLMProvider {
 				retryCount++
 
 				if (retryCount > maxRetries) {
-					// If we've exceeded the maximum number of retries, log the error and throw
-					console.error(
+					logErrorAlways(
 						`Error getting batch status for ${batchId} after ${maxRetries} retries:`,
 						error
 					)
@@ -254,14 +222,12 @@ export class AnthropicProvider implements LLMProvider {
 					)
 				}
 
-				// Log retry attempt
-				console.warn(
+				logWarningAlways(
 					`Error getting batch status for ${batchId} (attempt ${retryCount}/${maxRetries}):`,
 					error
 				)
-				console.log(`Retrying in ${retryDelay / 1000} seconds...`)
+				log(`Retrying in ${retryDelay / 1000} seconds...`)
 
-				// Wait for the specified delay before retrying
 				await new Promise((resolve) => setTimeout(resolve, retryDelay))
 			}
 		}
@@ -270,11 +236,6 @@ export class AnthropicProvider implements LLMProvider {
 		throw new Error(`Failed to get batch status for ${batchId} after ${maxRetries} retries`)
 	}
 
-	/**
-	 * Get the results of a batch
-	 * @param resultsUrl The URL to fetch results from
-	 * @returns Array of batch results
-	 */
 	async getBatchResults(resultsUrl: string): Promise<AnthropicBatchResult[]> {
 		try {
 			const response = await fetch(resultsUrl, {
@@ -301,7 +262,7 @@ export class AnthropicProvider implements LLMProvider {
 
 			return results
 		} catch (error) {
-			console.error(`Error getting batch results:`, error)
+			logErrorAlways(`Error getting batch results:`, error)
 			throw new Error(
 				`Failed to get batch results: ${error instanceof Error ? error.message : String(error)}`
 			)
@@ -324,7 +285,11 @@ export class AnthropicProvider implements LLMProvider {
 		options: BatchProcessingOptions,
 		originalFileCount: number,
 		minimizeApplied: boolean,
-		resultProcessor: (result: AnthropicBatchResult, fileObj: string | { path: string; content: string }, index: number) => T | null
+		resultProcessor: (
+			result: AnthropicBatchResult,
+			fileObj: string | { path: string; content: string },
+			index: number
+		) => T | null
 	): Promise<BatchProcessingResult<T>> {
 		// Create debug structure to store inputs and outputs
 		const debugData: BatchDebugData = {
@@ -407,7 +372,7 @@ export class AnthropicProvider implements LLMProvider {
 				}
 
 				const outputContent = result.result.message.content[0].text
-				
+
 				// Update debug data with response
 				const debugEntry = debugData.requests.find((r) => r.index === index)
 				if (debugEntry) {

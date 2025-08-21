@@ -7,10 +7,6 @@
 	],
 	"servers": {
 		// The "servers" section defines the MCP servers you want to use.
-		"fetch": {
-			"command": "uvx",
-			"args": ["mcp-server-fetch"]
-		},
 		"svelte-llm": {
 			"command": "npx",
 			"args": ["mcp-remote", "http://localhost:5173/mcp/mcp"]
