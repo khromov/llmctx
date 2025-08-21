@@ -1,13 +1,14 @@
 import type { RequestHandler } from './$types'
 import { json, error } from '@sveltejs/kit'
 import { ContentDbService } from '$lib/server/contentDb'
-import { extractTitleFromPath } from '$lib/utils/pathUtils'
+import { extractTitleFromPath, removeFrontmatter } from '$lib/utils/pathUtils'
 import { logAlways, logErrorAlways } from '$lib/log'
 
 interface FullDocumentationResponse {
 	success: boolean
 	metadata: {
 		total_documents: number
+		filtered_documents: number
 		total_size_kb: number
 		last_updated: string
 		generated_at: string
@@ -38,6 +39,13 @@ function getTitleFromMetadata(
 	return extractTitleFromPath(fallbackPath)
 }
 
+/**
+ * Filter out short files (< 200 characters) to focus on substantial content
+ */
+function filterShortFiles<T extends { content: string }>(documents: T[], minLength = 200): T[] {
+	return documents.filter((doc) => doc.content.length >= minLength)
+}
+
 export const GET: RequestHandler = async () => {
 	const startTime = Date.now()
 
@@ -58,6 +66,7 @@ export const GET: RequestHandler = async () => {
 					error: 'No documentation found in database. The repository may need to be synced first.',
 					metadata: {
 						total_documents: 0,
+						filtered_documents: 0,
 						total_size_kb: 0,
 						last_updated: new Date().toISOString(),
 						generated_at: new Date().toISOString()
@@ -73,17 +82,27 @@ export const GET: RequestHandler = async () => {
 			)
 		}
 
-		// Transform database entries to the desired format
-		const documents = allDocs.map((doc) => ({
+		logAlways(`Found ${allDocs.length} total documents in database`)
+
+		// Transform database entries to the desired format with frontmatter removed
+		const allTransformed = allDocs.map((doc) => ({
 			path: doc.path,
 			title: getTitleFromMetadata(doc.metadata, doc.path),
 			filename: doc.filename,
-			content: doc.content,
+			content: removeFrontmatter(doc.content), // Remove frontmatter from content
 			size_bytes: doc.size_bytes,
 			metadata: doc.metadata,
 			created_at: doc.created_at.toISOString(),
 			updated_at: doc.updated_at.toISOString()
 		}))
+
+		// Filter out short files (< 200 characters) to focus on substantial content
+		const documents = filterShortFiles(allTransformed, 200)
+
+		const filteredCount = allDocs.length - documents.length
+		logAlways(
+			`Filtered out ${filteredCount} short files (< 200 chars), keeping ${documents.length} documents`
+		)
 
 		// Calculate metadata
 		const totalSizeBytes = documents.reduce((sum, doc) => sum + doc.size_bytes, 0)
@@ -98,7 +117,8 @@ export const GET: RequestHandler = async () => {
 		const response: FullDocumentationResponse = {
 			success: true,
 			metadata: {
-				total_documents: documents.length,
+				total_documents: allDocs.length,
+				filtered_documents: documents.length,
 				total_size_kb: totalSizeKb,
 				last_updated: lastUpdated.toISOString(),
 				generated_at: new Date().toISOString()
@@ -108,14 +128,14 @@ export const GET: RequestHandler = async () => {
 
 		const generationTime = Date.now() - startTime
 
-		logAlways(`Successfully served FULL documentation from database`)
-		logAlways(
-			`Total documents: ${documents.length}, Total size: ${totalSizeKb}KB, Generation time: ${generationTime}ms`
-		)
-
 		// Count Svelte vs SvelteKit docs for logging
 		const svelteCount = documents.filter((doc) => doc.path.includes('/docs/svelte/')).length
 		const svelteKitCount = documents.filter((doc) => doc.path.includes('/docs/kit/')).length
+
+		logAlways(`Successfully served FULL documentation from database`)
+		logAlways(
+			`Filtered documents: ${documents.length}, Total size: ${totalSizeKb}KB, Generation time: ${generationTime}ms`
+		)
 		logAlways(`Svelte docs: ${svelteCount}, SvelteKit docs: ${svelteKitCount}`)
 
 		return json(response, {
@@ -123,7 +143,8 @@ export const GET: RequestHandler = async () => {
 				'Content-Type': 'application/json',
 				'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
 				'X-Generation-Time': `${generationTime}ms`,
-				'X-Total-Documents': documents.length.toString(),
+				'X-Total-Documents': allDocs.length.toString(),
+				'X-Filtered-Documents': documents.length.toString(),
 				'X-Total-Size': `${totalSizeKb}KB`,
 				'X-Svelte-Count': svelteCount.toString(),
 				'X-SvelteKit-Count': svelteKitCount.toString()
@@ -140,6 +161,7 @@ export const GET: RequestHandler = async () => {
 				error: errorMessage,
 				metadata: {
 					total_documents: 0,
+					filtered_documents: 0,
 					total_size_kb: 0,
 					last_updated: new Date().toISOString(),
 					generated_at: new Date().toISOString()

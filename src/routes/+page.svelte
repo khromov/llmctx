@@ -46,6 +46,112 @@
 
 	<McpSection sseEndpoint={SSE_ENDPOINT} streamableEndpoint={STREAMABLE_ENDPOINT} />
 
+	<!-- JSON API Section -->
+	<section class="json-api-section">
+		<div class="section-header">
+			<h2>JSON API</h2>
+			<p class="section-description">
+				Programmatic access to complete Svelte 5 + SvelteKit documentation as structured JSON data
+			</p>
+		</div>
+
+		<div class="api-card">
+			<div class="api-header">
+				<h3>📋 Full Documentation API</h3>
+				<span class="api-method">GET</span>
+			</div>
+
+			<div class="api-content">
+				<div class="api-url">
+					<code>{SITE_URL}/api/svelte-sveltekit-preset</code>
+					<button
+						class="copy-btn"
+						onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/svelte-sveltekit-preset`)}
+					>
+						Copy
+					</button>
+				</div>
+
+				<div class="api-description">
+					<p>
+						Returns the complete Svelte 5 and SvelteKit documentation as a JSON array of documents.
+						Each document represents a single markdown file from the official documentation with
+						frontmatter removed and short files filtered out.
+					</p>
+				</div>
+
+				<div class="api-features">
+					<h4>Response Features:</h4>
+					<ul>
+						<li>
+							<strong>Complete Coverage:</strong> All Svelte 5 and SvelteKit documentation files
+						</li>
+						<li>
+							<strong>Clean Content:</strong> Frontmatter removed, substantial content only (≥200 chars)
+						</li>
+						<li>
+							<strong>Rich Metadata:</strong> Includes titles, file paths, sizes, and timestamps
+						</li>
+						<li><strong>Database Fields:</strong> Full access to all stored document properties</li>
+						<li><strong>CORS Enabled:</strong> Ready for browser-based applications</li>
+					</ul>
+				</div>
+
+				<div class="api-example">
+					<h4>Response Structure:</h4>
+					<pre><code
+							>{`{
+  "success": true,
+  "metadata": {
+    "total_documents": 127,
+    "filtered_documents": 89,
+    "total_size_kb": 2450,
+    "last_updated": "2024-01-15T10:30:00.000Z",
+    "generated_at": "2024-01-15T15:45:30.123Z"
+  },
+  "documents": [
+    {
+      "path": "apps/svelte.dev/content/docs/svelte/01-introduction/01-overview.md",
+      "title": "Overview",
+      "filename": "01-overview.md", 
+      "content": "The command line interface (CLI), \`sv\`, is a toolkit...",
+      "size_bytes": 1234,
+      "metadata": { "title": "Overview", "description": "..." },
+      "created_at": "2024-01-15T10:00:00.000Z",
+      "updated_at": "2024-01-15T10:30:00.000Z"
+    }
+    // ... more documents
+  ]
+}`}</code
+						></pre>
+				</div>
+
+				<div class="api-usage">
+					<h4>Usage Examples:</h4>
+					<div class="usage-examples">
+						<div class="usage-example">
+							<h5>cURL</h5>
+							<code>curl {SITE_URL}/api/svelte-sveltekit-preset</code>
+						</div>
+						<div class="usage-example">
+							<h5>JavaScript/Fetch</h5>
+							<code
+								>const docs = await fetch('{SITE_URL}/api/svelte-sveltekit-preset').then(r =>
+								r.json())</code
+							>
+						</div>
+						<div class="usage-example">
+							<h5>Python</h5>
+							<code
+								>import requests; docs = requests.get('{SITE_URL}/api/svelte-sveltekit-preset').json()</code
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
 	<UsageSection siteUrl={SITE_URL} />
 
 	<PresetSection
@@ -107,9 +213,28 @@
 		min-height: 100vh;
 	}
 
-	/* Legacy section specific styles */
-	.presets-section {
-		margin-bottom: 25px;
+	/* JSON API Section Styles */
+	.json-api-section {
+		background: white;
+		border-radius: 16px;
+		padding: 32px;
+		box-shadow:
+			0 8px 32px rgba(0, 0, 0, 0.08),
+			0 4px 16px rgba(0, 0, 0, 0.04);
+		border: 1px solid rgba(0, 0, 0, 0.06);
+		margin-bottom: 40px;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.json-api-section::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 4px;
+		background: linear-gradient(90deg, #10b981 0%, #059669 100%);
 	}
 
 	.section-header {
@@ -134,8 +259,184 @@
 		left: 0;
 		width: 60px;
 		height: 3px;
-		background: linear-gradient(90deg, #ff3e00 0%, #ff6b35 100%);
+		background: linear-gradient(90deg, #10b981 0%, #059669 100%);
 		border-radius: 2px;
+	}
+
+	.section-description {
+		font-size: 16px;
+		color: #6e6e73;
+		margin: 0;
+		line-height: 1.5;
+		max-width: 600px;
+	}
+
+	.api-card {
+		background: #f8fafc;
+		border-radius: 12px;
+		border: 1px solid rgba(0, 0, 0, 0.06);
+		overflow: hidden;
+	}
+
+	.api-header {
+		background: #10b981;
+		color: white;
+		padding: 16px 24px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.api-header h3 {
+		margin: 0;
+		font-size: 18px;
+		font-weight: 600;
+	}
+
+	.api-method {
+		background: rgba(255, 255, 255, 0.2);
+		color: white;
+		padding: 4px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.api-content {
+		padding: 24px;
+	}
+
+	.api-url {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 20px;
+		padding: 12px;
+		background: white;
+		border-radius: 8px;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+	}
+
+	.api-url code {
+		flex: 1;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 14px;
+		color: #10b981;
+		font-weight: 600;
+	}
+
+	.copy-btn {
+		background: #10b981;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		padding: 6px 12px;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.copy-btn:hover {
+		background: #059669;
+		transform: translateY(-1px);
+	}
+
+	.api-description {
+		margin-bottom: 24px;
+	}
+
+	.api-description p {
+		margin: 0;
+		color: #374151;
+		line-height: 1.6;
+	}
+
+	.api-features {
+		margin-bottom: 24px;
+	}
+
+	.api-features h4 {
+		margin: 0 0 12px 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.api-features ul {
+		margin: 0;
+		padding-left: 20px;
+		color: #4b5563;
+	}
+
+	.api-features li {
+		margin: 8px 0;
+		line-height: 1.5;
+	}
+
+	.api-example {
+		margin-bottom: 24px;
+	}
+
+	.api-example h4 {
+		margin: 0 0 12px 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.api-example pre {
+		background: #1e1e1e;
+		color: #e5e7eb;
+		padding: 16px;
+		border-radius: 8px;
+		overflow-x: auto;
+		margin: 0;
+		font-size: 13px;
+		line-height: 1.4;
+	}
+
+	.api-usage h4 {
+		margin: 0 0 16px 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.usage-examples {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.usage-example {
+		background: white;
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		border-radius: 8px;
+		padding: 12px;
+	}
+
+	.usage-example h5 {
+		margin: 0 0 8px 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.usage-example code {
+		display: block;
+		font-family:
+			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 13px;
+		color: #4b5563;
+		word-break: break-all;
+	}
+
+	/* Legacy section specific styles */
+	.presets-section {
+		margin-bottom: 25px;
 	}
 
 	.preset-list {
@@ -171,6 +472,27 @@
 	@media (max-width: 768px) {
 		main {
 			padding: 0 16px;
+		}
+
+		.json-api-section {
+			padding: 24px;
+		}
+
+		.api-content {
+			padding: 20px;
+		}
+
+		.api-url {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.copy-btn {
+			align-self: center;
+		}
+
+		.usage-examples {
+			gap: 8px;
 		}
 
 		.section-header h2 {
