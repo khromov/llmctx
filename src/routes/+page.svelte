@@ -95,14 +95,10 @@
 
 		<div class="api-card">
 			<div class="api-url">
-				<code
-					>GET <a href="{SITE_URL}/api/svelte-sveltekit-docs" target="_blank"
-						>{SITE_URL}/api/svelte-sveltekit-docs</a
-					></code
-				>
+				<code>GET <a href="{SITE_URL}/api/docs" target="_blank">{SITE_URL}/api/docs</a></code>
 				<button
 					class="copy-btn"
-					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/svelte-sveltekit-docs`)}
+					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/docs`)}
 				>
 					Copy
 				</button>
@@ -110,7 +106,7 @@
 
 			<div class="api-example">
 				<div class="example-section">
-					<strong>curl {SITE_URL}/api/svelte-sveltekit-docs</strong>
+					<strong>curl {SITE_URL}/api/docs</strong>
 				</div>
 				<pre><code
 						>{`{
