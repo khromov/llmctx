@@ -5,7 +5,7 @@ import { logAlways } from '$lib/log'
 export const GET: RequestHandler = async () => {
 	try {
 		const memUsage = process.memoryUsage()
-		
+
 		// Get system memory info if available
 		let systemMemory = null
 		try {
@@ -15,7 +15,7 @@ export const GET: RequestHandler = async () => {
 				total: os.totalmem(),
 				freeFormatted: formatBytes(os.freemem()),
 				totalFormatted: formatBytes(os.totalmem()),
-				usedPercentage: ((os.totalmem() - os.freemem()) / os.totalmem() * 100).toFixed(1)
+				usedPercentage: (((os.totalmem() - os.freemem()) / os.totalmem()) * 100).toFixed(1)
 			}
 		} catch (e) {
 			// System memory not available
@@ -69,7 +69,7 @@ export const GET: RequestHandler = async () => {
 					externalFormatted: formatBytes(memUsage.external),
 					arrayBuffersFormatted: formatBytes(memUsage.arrayBuffers),
 					// Heap usage percentage
-					heapUsagePercentage: (memUsage.heapUsed / memUsage.heapTotal * 100).toFixed(1)
+					heapUsagePercentage: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(1)
 				}
 			},
 			system: systemMemory,
@@ -85,10 +85,7 @@ export const GET: RequestHandler = async () => {
 
 		return json(response)
 	} catch (e) {
-		throw error(
-			500,
-			`Failed to get memory status: ${e instanceof Error ? e.message : String(e)}`
-		)
+		throw error(500, `Failed to get memory status: ${e instanceof Error ? e.message : String(e)}`)
 	}
 }
 
