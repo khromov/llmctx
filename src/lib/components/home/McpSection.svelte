@@ -24,7 +24,7 @@
 			name: 'Claude Desktop',
 			icon: '🖥️',
 			description: 'The official Claude Desktop application with MCP integration support.',
-			url: sseEndpoint,
+			url: streamableEndpoint,
 			isDesktop: true,
 			steps: [
 				'Navigate to Settings > Integrations',
