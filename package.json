@@ -37,7 +37,7 @@
 		"eslint-plugin-svelte": "^3.11.0",
 		"globals": "^16.3.0",
 		"jsdom": "^26.1.0",
-		"mcp-handler": "^0.0.0-1c08e814-20250813181123",
+		"mcp-handler": "^1.0.1",
 		"minimatch": "^10.0.3",
 		"pg": "^8.16.3",
 		"postgres-migrations": "https://github.com/khromov/postgres-migrations",
