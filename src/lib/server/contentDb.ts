@@ -77,31 +77,6 @@ export class ContentDbService {
 		}
 	}
 
-	static async getContentByFilter(filter: ContentFilter): Promise<DbContent[]> {
-		try {
-			const conditions: string[] = []
-			const params: unknown[] = []
-			let paramCount = 1
-
-			if (filter.path_pattern) {
-				conditions.push(`path LIKE $${paramCount}`)
-				params.push(filter.path_pattern.replace('*', '%'))
-				paramCount++
-			}
-
-			const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-			const filterQueryStr = `SELECT * FROM content ${whereClause} ORDER BY path`
-
-			const result = await query(filterQueryStr, params)
-			return result.rows as DbContent[]
-		} catch (error) {
-			logErrorAlways('Failed to get content by filter:', error)
-			throw new Error(
-				`Failed to get content: ${error instanceof Error ? error.message : String(error)}`
-			)
-		}
-	}
-
 	/**
 	 * Generic search method that works with both content and content_distilled tables
 	 */
@@ -260,6 +235,31 @@ export class ContentDbService {
 		}
 	}
 
+	static async getFilteredContent(
+		pathPattern: string = 'apps/svelte.dev/content/docs/%',
+		minContentLength: number = 200
+	): Promise<DbContent[]> {
+		try {
+			const filterQueryStr = `
+				SELECT *
+				FROM content 
+				WHERE path LIKE $1
+					AND LENGTH(content) >= $2
+				ORDER BY path
+			`
+
+			const params = [pathPattern, minContentLength]
+
+			const result = await query(filterQueryStr, params)
+			return result.rows as DbContent[]
+		} catch (error) {
+			logErrorAlways('Failed to get filtered content:', error)
+			throw new Error(
+				`Failed to get filtered content: ${error instanceof Error ? error.message : String(error)}`
+			)
+		}
+	}
+
 	static async getContentStats(): Promise<ContentStats> {
 		try {
 			const totalResult = await query(
@@ -324,7 +324,7 @@ export class ContentDbService {
 			const results: DbContent[] = []
 
 			// Process in chunks to avoid overwhelming the database
-			const chunkSize = 100
+			const chunkSize = 200
 			for (let i = 0; i < contents.length; i += chunkSize) {
 				const chunk = contents.slice(i, i + chunkSize)
 

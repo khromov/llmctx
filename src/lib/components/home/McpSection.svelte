@@ -57,6 +57,17 @@
 				'Add this URL to your Cline MCP settings. Name the MCP svelte-llm or whatever you like.'
 		},
 		{
+			id: 'codex-cli',
+			name: 'OpenAI Codex',
+			icon: '🧰',
+			description: 'Add this to ~/.codex/config.toml',
+			instruction: `[mcp_servers.svelte-llm]
+command = "npx"
+args = ["-y", "mcp-remote", "${streamableEndpoint}"]
+`,
+			isConfig: true
+		},
+		{
 			id: 'others',
 			name: 'Other Clients',
 			icon: '🔗',
@@ -92,7 +103,7 @@
 	<div class="section-header">
 		<div class="mcp-badge-header">
 			<span class="recommended-badge">Recommended</span>
-			<h2>MCP Server Integration</h2>
+			<h2>MCP Server</h2>
 		</div>
 		<p class="section-description">
 			Connect your AI assistant directly to live Svelte documentation using the Model Context
@@ -201,7 +212,7 @@
 
 	.client-selector {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 		gap: 12px;
 		margin-bottom: 24px;
 	}
