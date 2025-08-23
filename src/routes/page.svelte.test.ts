@@ -101,7 +101,7 @@ describe('/+page.svelte', () => {
 
 	test('should render MCP section', () => {
 		render(Page, { data: mockPageData })
-		expect(screen.getByText('MCP Server Integration')).toBeInTheDocument()
+		expect(screen.getByText('MCP Server')).toBeInTheDocument()
 	})
 
 	test('should render preset sections', () => {
