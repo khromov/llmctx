@@ -237,7 +237,7 @@ export class ContentDbService {
 
 	static async getFilteredContent(
 		pathPattern: string = 'apps/svelte.dev/content/docs/%',
-		minContentLength: number = 200
+		minContentLength: number = 100
 	): Promise<DbContent[]> {
 		try {
 			const filterQueryStr = `
