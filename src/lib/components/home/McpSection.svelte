@@ -103,7 +103,7 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 	<div class="section-header">
 		<div class="mcp-badge-header">
 			<span class="recommended-badge">Recommended</span>
-			<h2>MCP Server Integration</h2>
+			<h2>MCP Server</h2>
 		</div>
 		<p class="section-description">
 			Connect your AI assistant directly to live Svelte documentation using the Model Context

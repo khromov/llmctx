@@ -4,7 +4,7 @@
 
 <section class="usage-section">
 	<div class="section-header">
-		<h2>Direct URL Access</h2>
+		<h2>llms.txt presets</h2>
 		<p class="section-description">
 			Alternative method: Access documentation presets directly via URL for manual download or
 			integration.
