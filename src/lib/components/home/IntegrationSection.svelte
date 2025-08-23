@@ -26,7 +26,7 @@
 
 <section class="integration-section">
 	<div class="section-header">
-		<h2>AI Assistant Integration</h2>
+		<h2>Add llms.txt to AI assistants</h2>
 		<p class="section-description">
 			Multiple ways to use these presets with your favorite AI coding assistants
 		</p>
