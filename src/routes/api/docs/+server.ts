@@ -46,7 +46,7 @@ export const GET: RequestHandler = async () => {
 		logAlways('JSON API request for FULL Svelte + SvelteKit documentation from database')
 
 		const totalDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%', 0)
-		const allDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%', 200)
+		const allDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%')
 
 		if (allDocs.length === 0) {
 			logAlways('No documentation found in database')
