@@ -108,10 +108,7 @@ export const handler = createMcpHandler(
 						})
 					}
 
-					// Then add individual documents
-					const documents = await ContentDbService.getContentByFilter({
-						path_pattern: 'apps/svelte.dev/content/docs/%'
-					})
+					const documents = await ContentDbService.getDocumentationSections()
 
 					logAlways(`Found ${documents.length} individual documents for resource listing`)
 
@@ -212,9 +209,7 @@ export const handler = createMcpHandler(
 				// If not found, try exact path match with cleaned path
 				if (!document) {
 					// Try to find by cleaned path - need to search all content and match cleaned paths
-					const allDocs = await ContentDbService.getContentByFilter({
-						path_pattern: 'apps/svelte.dev/content/docs/%'
-					})
+					const allDocs = await ContentDbService.getFilteredContent()
 
 					document =
 						allDocs.find((doc) => cleanDocumentationPath(doc.path) === documentSlug) || null
