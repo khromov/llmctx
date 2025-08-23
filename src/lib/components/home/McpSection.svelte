@@ -20,17 +20,6 @@
 			isCommand: true
 		},
 		{
-			id: 'codex-cli',
-			name: 'OpenAI Codex',
-			icon: '🧰',
-			description: 'Add this to ~/.codex/config.toml',
-			instruction: `[mcp_servers.svelte-llm]
-command = "npx"
-args = ["-y", "mcp-remote", "${streamableEndpoint}"]
-`,
-			isConfig: true
-		},
-		{
 			id: 'claude-desktop',
 			name: 'Claude Desktop',
 			icon: '🖥️',
@@ -66,6 +55,17 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 			url: sseEndpoint,
 			description:
 				'Add this URL to your Cline MCP settings. Name the MCP svelte-llm or whatever you like.'
+		},
+		{
+			id: 'codex-cli',
+			name: 'OpenAI Codex',
+			icon: '🧰',
+			description: 'Add this to ~/.codex/config.toml',
+			instruction: `[mcp_servers.svelte-llm]
+command = "npx"
+args = ["-y", "mcp-remote", "${streamableEndpoint}"]
+`,
+			isConfig: true
 		},
 		{
 			id: 'others',
