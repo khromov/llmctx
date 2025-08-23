@@ -237,7 +237,7 @@ export class ContentDbService {
 
 	static async getFilteredContent(
 		pathPattern: string = 'apps/svelte.dev/content/docs/%',
-		minContentLength: number = 100
+		minContentLength: number = 200
 	): Promise<DbContent[]> {
 		try {
 			const filterQueryStr = `
@@ -324,7 +324,7 @@ export class ContentDbService {
 			const results: DbContent[] = []
 
 			// Process in chunks to avoid overwhelming the database
-			const chunkSize = 100
+			const chunkSize = 200
 			for (let i = 0; i < contents.length; i += chunkSize) {
 				const chunk = contents.slice(i, i + chunkSize)
 
