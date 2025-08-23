@@ -93,6 +93,10 @@
 			<h2>JSON API</h2>
 		</div>
 
+		<p class="api-note">
+			This endpoint returns the entire Svelte and SvelteKit documentation in JSON format.
+		</p>
+
 		<div class="api-card">
 			<div class="api-url">
 				<code>GET <a href="{SITE_URL}/api/docs" target="_blank">{SITE_URL}/api/docs</a></code>
@@ -183,6 +187,12 @@
 		padding: 20px;
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 		border: 1px solid rgba(0, 0, 0, 0.06);
+	}
+
+	.api-note {
+		margin: 0 0 12px 0;
+		color: #4b5563;
+		font-size: 14px;
 	}
 
 	.api-url {
