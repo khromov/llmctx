@@ -23,14 +23,14 @@
 	.client-button {
 		background: #f5f5f7;
 		border: 2px solid rgba(0, 0, 0, 0.08);
-		border-radius: 12px;
-		padding: 16px 12px;
+		border-radius: 10px;
+		padding: 12px 10px;
 		cursor: pointer;
 		transition: all 0.2s ease;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
+		gap: 6px;
 		text-align: center;
 	}
 
@@ -50,12 +50,12 @@
 	}
 
 	.client-icon {
-		font-size: 24px;
+		font-size: 20px;
 		line-height: 1;
 	}
 
 	.client-name {
 		font-weight: 600;
-		font-size: 14px;
+		font-size: 13px;
 	}
 </style>

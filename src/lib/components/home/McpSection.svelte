@@ -20,6 +20,17 @@
 			isCommand: true
 		},
 		{
+			id: 'codex-cli',
+			name: 'OpenAI Codex',
+			icon: '🧰',
+			description: 'Add this to ~/.codex/config.toml',
+			instruction: `[mcp_servers.svelte-llm]
+command = "npx"
+args = ["-y", "mcp-remote", "${streamableEndpoint}"]
+`,
+			isConfig: true
+		},
+		{
 			id: 'claude-desktop',
 			name: 'Claude Desktop',
 			icon: '🖥️',
@@ -201,7 +212,7 @@
 
 	.client-selector {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 		gap: 12px;
 		margin-bottom: 24px;
 	}
