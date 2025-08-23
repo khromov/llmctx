@@ -45,9 +45,8 @@ export const GET: RequestHandler = async () => {
 	try {
 		logAlways('JSON API request for FULL Svelte + SvelteKit documentation from database')
 
-		// Query all Svelte and SvelteKit documentation from the database
-		// This covers both /docs/svelte/ and /docs/kit/ paths with length filtering (200 chars minimum)
-		const allDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%')
+		const totalDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%', 0)
+		const allDocs = await ContentDbService.getFilteredContent('apps/svelte.dev/content/docs/%', 200)
 
 		if (allDocs.length === 0) {
 			logAlways('No documentation found in database')
@@ -73,7 +72,9 @@ export const GET: RequestHandler = async () => {
 			)
 		}
 
-		logAlways(`Found ${allDocs.length} total documents in database`)
+		logAlways(
+			`Found ${totalDocs.length} total documents, ${allDocs.length} after filtering (>= 200 chars)`
+		)
 
 		// Transform database entries to the desired format with frontmatter removed
 		// Note: filtering by content length (200 chars minimum) is already done at the database level
@@ -88,7 +89,7 @@ export const GET: RequestHandler = async () => {
 			updated_at: doc.updated_at.toISOString()
 		}))
 
-		logAlways(`Found ${documents.length} documents with content length >= 200 characters`)
+		logAlways(`Processed ${documents.length} filtered documents`)
 
 		// Calculate metadata
 		const totalSizeBytes = documents.reduce((sum, doc) => sum + doc.size_bytes, 0)
@@ -103,8 +104,8 @@ export const GET: RequestHandler = async () => {
 		const response: FullDocumentationResponse = {
 			success: true,
 			metadata: {
-				total_documents: documents.length, // Now represents already filtered documents
-				filtered_documents: documents.length,
+				total_documents: totalDocs.length, // Total unfiltered documents
+				filtered_documents: documents.length, // Filtered documents (>= 200 chars)
 				total_size_kb: totalSizeKb,
 				last_updated: lastUpdated.toISOString(),
 				generated_at: new Date().toISOString()
@@ -120,7 +121,7 @@ export const GET: RequestHandler = async () => {
 
 		logAlways(`Successfully served FULL documentation from database`)
 		logAlways(
-			`Documents: ${documents.length}, Total size: ${totalSizeKb}KB, Generation time: ${generationTime}ms`
+			`Total: ${totalDocs.length}, Filtered: ${documents.length}, Size: ${totalSizeKb}KB, Time: ${generationTime}ms`
 		)
 		logAlways(`Svelte docs: ${svelteCount}, SvelteKit docs: ${svelteKitCount}`)
 
@@ -129,7 +130,7 @@ export const GET: RequestHandler = async () => {
 				'Content-Type': 'application/json',
 				'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
 				'X-Generation-Time': `${generationTime}ms`,
-				'X-Total-Documents': documents.length.toString(),
+				'X-Total-Documents': totalDocs.length.toString(),
 				'X-Filtered-Documents': documents.length.toString(),
 				'X-Total-Size': `${totalSizeKb}KB`,
 				'X-Svelte-Count': svelteCount.toString(),
