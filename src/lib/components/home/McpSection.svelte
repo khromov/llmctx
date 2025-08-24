@@ -16,7 +16,7 @@
 			icon: '🔧',
 			description:
 				'The official Anthropic command-line tool. Run this command to add the MCP server:',
-			instruction: `claude mcp add --transport sse --scope project svelte-llm ${sseEndpoint}`,
+			instruction: `claude mcp add --transport http --scope project svelte-llm ${streamableEndpoint}`,
 			isCommand: true
 		},
 		{
