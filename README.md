@@ -6,8 +6,8 @@ LLM presets and MCP for Svelte 5 and SvelteKit. Visit the site at [svelte-llm.st
 
 This service provides an MCP (Model Context Protocol) endpoint for use with AI assistants:
 
-- **SSE (Claude Desktop)**: `https://svelte-llm.stanislav.garden/mcp/sse`
-- **Streamable HTTP (most other clients)**: `https://svelte-llm.stanislav.garden/mcp/mcp`
+- **Streamable HTTP (Claude Desktop and most other clients)**: `https://svelte-llm.stanislav.garden/mcp/mcp`
+- - **SSE (Older clients that don't support Streamable)**: `https://svelte-llm.stanislav.garden/mcp/sse`
 
 # Setup
 
