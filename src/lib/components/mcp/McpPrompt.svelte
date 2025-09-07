@@ -14,7 +14,7 @@ When asked about Svelte or SvelteKit topics, ALWAYS use this tool at the start o
 
 ### 2. get_documentation
 Retrieves full documentation content for specific sections. Accepts single or multiple sections.
-After calling list_section, you MUST analyze and the returned documentation sections and then use the get_documentation tool to fetch ALL relevant sections for the user's query.`
+After calling the list_sections tool, you MUST analyze and the returned documentation sections and then use the get_documentation tool to fetch ALL relevant sections for the user's query.`
 
 	async function copySystemPrompt() {
 		try {
