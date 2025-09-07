@@ -1,6 +1,7 @@
 <script lang="ts">
 	import McpClientButton from '$lib/components/mcp/McpClientButton.svelte'
 	import McpClientInstructions from '$lib/components/mcp/McpClientInstructions.svelte'
+	import McpPrompt from '$lib/components/mcp/McpPrompt.svelte'
 
 	let { sseEndpoint, streamableEndpoint }: { sseEndpoint: string; streamableEndpoint: string } =
 		$props()
@@ -101,17 +102,15 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 
 <section class="mcp-section">
 	<div class="section-header">
-		<div class="mcp-badge-header">
-			<span class="recommended-badge">Recommended</span>
-			<h2>MCP Server</h2>
-		</div>
+		<h2>MCP Server</h2>
 		<p class="section-description">
 			Connect your AI assistant directly to live Svelte documentation using the Model Context
-			Protocol. Choose your client below for setup instructions.
+			Protocol. Follow the steps below to set up your integration.
 		</p>
 	</div>
 
 	<div class="mcp-clients">
+		<h3 class="step-heading">Step 1: Choose Your Client</h3>
 		<div class="client-selector">
 			{#each mcpClients as client}
 				<McpClientButton
@@ -130,6 +129,11 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 				<McpClientInstructions {client} />
 			{/if}
 		{/if}
+	</div>
+
+	<div class="mcp-prompt-section">
+		<h3 class="step-heading">Step 2: Configure System Prompt</h3>
+		<McpPrompt />
 	</div>
 </section>
 
@@ -158,7 +162,7 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 	}
 
 	.section-header {
-		margin-bottom: 16px;
+		margin-bottom: 24px;
 		padding-top: 12px;
 	}
 
@@ -191,23 +195,17 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 		max-width: 600px;
 	}
 
-	.mcp-badge-header {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		margin-bottom: 8px;
+	.step-heading {
+		font-size: 18px;
+		font-weight: 600;
+		color: #1d1d1f;
+		margin: 0 0 16px 0;
+		padding-bottom: 8px;
+		border-bottom: 2px solid #f0f0f0;
 	}
 
-	.recommended-badge {
-		background: linear-gradient(135deg, #4ade80, #22c55e);
-		color: white;
-		font-size: 12px;
-		font-weight: 600;
-		padding: 6px 12px;
-		border-radius: 8px;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+	.mcp-prompt-section {
+		margin-top: 32px;
 	}
 
 	.client-selector {
@@ -220,12 +218,6 @@ args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 	@media (max-width: 768px) {
 		.mcp-section {
 			padding: 24px;
-		}
-
-		.mcp-badge-header {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 8px;
 		}
 
 		.client-selector {
