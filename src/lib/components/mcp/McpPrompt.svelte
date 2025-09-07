@@ -10,41 +10,11 @@
 
 ### 1. list_sections
 Use this FIRST to discover all available documentation sections. Returns a structured list with titles and paths.
-Example usage: Always start by calling list_sections when asked about Svelte/SvelteKit topics.
+When asked about Svelte or SvelteKit topics, ALWAYS use this tool at the start of the chat to find relevant sections.
 
 ### 2. get_documentation
 Retrieves full documentation content for specific sections. Accepts single or multiple sections.
-- Can search by title (e.g., "$state", "routing") 
-- Can search by path (e.g., "docs/svelte/state.md")
-- Supports arrays for fetching multiple sections at once
-Strategy: After listing sections, fetch ALL relevant sections for the user's query in a single call.
-
-### 3. Template Prompts (Most Efficient)
-Pre-curated documentation sets for instant context:
-- svelte-core: Core Svelte 5 (introduction, runes, template syntax, styling)
-- svelte-advanced: Advanced Svelte 5 (special elements, runtime, misc)
-- svelte-complete: Complete Svelte 5 documentation
-- sveltekit-core: Core SvelteKit (getting started, core concepts)
-- sveltekit-production: Production SvelteKit (build/deploy, advanced, best practices)
-- sveltekit-complete: Complete SvelteKit documentation
-
-### 4. Resources
-Direct access to documentation via URIs:
-- Preset resources: svelte-llm://svelte-core, svelte-llm://sveltekit-complete, etc.
-- Individual docs: svelte-llm://doc/[path] for specific files
-
-## Optimal Usage Strategy:
-
-1. **For General Questions**: Use template prompts (svelte-core, sveltekit-core) for immediate context
-2. **For Specific Topics**: Use list_sections → get_documentation for targeted content
-3. **For Development**: Access resources directly for reference while coding
-4. **For Complete Context**: Combine multiple template prompts as needed
-
-## Best Practices:
-- Start with template prompts when possible (they're pre-optimized)
-- Use get_documentation with arrays to fetch multiple sections efficiently
-- Only use list_sections + get_documentation when template prompts don't cover your needs
-- Combine svelte and sveltekit prompts for full-stack questions`
+After calling list_section, you MUST analyze and the returned documentation sections and then use the get_documentation tool to fetch ALL relevant sections for the user's query.`
 
 	async function copySystemPrompt() {
 		try {
@@ -87,8 +57,8 @@ Direct access to documentation via URIs:
 
 	<div class="prompt-usage">
 		<p>
-			<strong>How to use:</strong> Add this to your AI assistant's system message or custom instructions
-			to help it understand how to use the MCP tools effectively.
+			<strong>How to use:</strong> Add this to your AI assistant's system message or custom instructions,
+			eg CLAUDE.md or AGENTS.md.
 		</p>
 	</div>
 </div>
