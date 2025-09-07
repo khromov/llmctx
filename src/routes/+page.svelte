@@ -42,285 +42,411 @@
 </script>
 
 <main>
+	<div class="page-decoration decoration-1"></div>
+	<div class="page-decoration decoration-2"></div>
+
 	<HeroSection isOldHost={data.isOldHost} />
 
-	<McpSection sseEndpoint={SSE_ENDPOINT} streamableEndpoint={STREAMABLE_ENDPOINT} />
+	<div class="content-wrapper">
+		<McpSection sseEndpoint={SSE_ENDPOINT} streamableEndpoint={STREAMABLE_ENDPOINT} />
 
-	<UsageSection siteUrl={SITE_URL} />
+		<UsageSection siteUrl={SITE_URL} />
 
-	<PresetSection
-		title="Combined presets"
-		description="Hand-picked combinations of the Svelte 5 + SvelteKit docs in a variety of sizes to fit different LLMs."
-		presets={combinedPresetsFormatted}
-		presetSizes={data.presetSizes}
-		distilledVersionsPromises={data.distilledVersions}
-	/>
+		<PresetSection
+			title="Combined presets"
+			description="Hand-picked combinations of the Svelte 5 + SvelteKit docs in a variety of sizes to fit different LLMs."
+			presets={combinedPresetsFormatted}
+			presetSizes={data.presetSizes}
+			distilledVersionsPromises={data.distilledVersions}
+		/>
 
-	<PresetSection
-		title="Svelte 5"
-		presets={sveltePresetsFormatted}
-		extraPresets={[svelteDistilledPreset]}
-		presetSizes={data.presetSizes}
-		distilledVersionsPromises={data.distilledVersions}
-	/>
+		<PresetSection
+			title="Svelte 5"
+			presets={sveltePresetsFormatted}
+			extraPresets={[svelteDistilledPreset]}
+			presetSizes={data.presetSizes}
+			distilledVersionsPromises={data.distilledVersions}
+		/>
 
-	<PresetSection
-		title="SvelteKit"
-		presets={svelteKitPresetsFormatted}
-		extraPresets={[svelteKitDistilledPreset]}
-		presetSizes={data.presetSizes}
-		distilledVersionsPromises={data.distilledVersions}
-	/>
+		<PresetSection
+			title="SvelteKit"
+			presets={svelteKitPresetsFormatted}
+			extraPresets={[svelteKitDistilledPreset]}
+			presetSizes={data.presetSizes}
+			distilledVersionsPromises={data.distilledVersions}
+		/>
 
-	<PresetSection title="Other" presets={otherPresetsFormatted} presetSizes={data.presetSizes} />
+		<PresetSection title="Other" presets={otherPresetsFormatted} presetSizes={data.presetSizes} />
 
-	<section class="presets-section">
-		<div class="section-header">
-			<h2>Legacy</h2>
-		</div>
-		<div class="preset-list">
-			<div class="preset-item">
-				<a target="_blank" href="https://v4.svelte.dev/content.json">Svelte 4 Legacy + SvelteKit</a>
+		<!-- Legacy Section -->
+		<section class="legacy-section">
+			<header class="section-header">
+				<div class="header-decoration"></div>
+				<h2>Legacy</h2>
+			</header>
+			<div class="legacy-card">
+				<a target="_blank" href="https://v4.svelte.dev/content.json" class="legacy-link">
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+					>
+						<path d="M13 2L3 14h9l-1 8l10-12h-9l1-8z" />
+					</svg>
+					<span>Svelte 4 Legacy + SvelteKit</span>
+					<svg
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						class="arrow"
+					>
+						<path d="M7 17l10-10M17 7h-10M17 7v10" />
+					</svg>
+				</a>
 			</div>
-		</div>
-	</section>
+		</section>
 
-	<IntegrationSection siteUrl={SITE_URL} />
+		<IntegrationSection siteUrl={SITE_URL} />
 
-	<!-- JSON API Section - Condensed -->
-	<section class="json-api-section">
-		<div class="section-header">
-			<h2>JSON API</h2>
-		</div>
+		<!-- JSON API Section -->
+		<section class="api-section">
+			<header class="section-header">
+				<div class="header-decoration"></div>
+				<h2>JSON API</h2>
+			</header>
 
-		<p class="api-note">
-			This endpoint returns the entire Svelte and SvelteKit documentation in JSON format.
-		</p>
+			<p class="api-description">
+				Access the entire Svelte and SvelteKit documentation programmatically in JSON format.
+			</p>
 
-		<div class="api-card">
-			<div class="api-url">
-				<code>GET <a href="{SITE_URL}/api/docs" target="_blank">{SITE_URL}/api/docs</a></code>
-				<button
-					class="copy-btn"
-					onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/docs`)}
-				>
-					Copy
-				</button>
-			</div>
-
-			<div class="api-example">
-				<div class="example-section">
-					<strong>curl {SITE_URL}/api/docs</strong>
+			<div class="api-card">
+				<div class="api-endpoint">
+					<span class="method-badge">GET</span>
+					<a href="{SITE_URL}/api/docs" target="_blank" class="api-url">{SITE_URL}/api/docs</a>
+					<button
+						class="copy-btn"
+						onclick={() => navigator.clipboard.writeText(`${SITE_URL}/api/docs`)}
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+							<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+						</svg>
+						Copy
+					</button>
 				</div>
-				<pre><code
-						>{`{
+
+				<div class="api-example">
+					<div class="example-header">
+						<span class="terminal-prompt">$</span>
+						<code>curl {SITE_URL}/api/docs</code>
+					</div>
+					<pre class="example-response"><code
+							>{`{
   "success": true,
-  "metadata": { "total_documents": 127, "filtered_documents": 89, [...] },
+  "metadata": { 
+    "total_documents": 127, 
+    "filtered_documents": 89,
+    "total_size_kb": 512,
+    "last_updated": "2024-01-15T08:30:00Z"
+  },
   "documents": [
     {
-      "path": "apps/svelte.dev/content/docs/svelte/01-introduction/01-overview.md",
+      "path": "docs/svelte/01-introduction/01-overview.md",
       "title": "Overview",
-      "content": "The command line interface (CLI), sv, is a toolkit...",
-      [...]
+      "content": "Svelte is a radical new approach..."
     }
   ]
 }`}</code
-					></pre>
+						></pre>
+				</div>
 			</div>
-		</div>
-	</section>
+		</section>
+	</div>
 
 	<SiteFooter />
 </main>
 
 <style>
-	:global(html) {
-		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-		line-height: 1.6;
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-	}
+	@import url('/src/app.css');
 
 	main {
+		position: relative;
+		background: var(--color-cream);
+		min-height: 100vh;
+		overflow: hidden;
+	}
+
+	.page-decoration {
+		position: fixed;
+		pointer-events: none;
+		opacity: 0.03;
+		z-index: 0;
+	}
+
+	.decoration-1 {
+		top: 20%;
+		right: -100px;
+		width: 400px;
+		height: 400px;
+		background: radial-gradient(circle, var(--color-sage) 0%, transparent 70%);
+		border-radius: 50%;
+		animation: float-slow 40s infinite ease-in-out;
+	}
+
+	.decoration-2 {
+		bottom: 10%;
+		left: -150px;
+		width: 500px;
+		height: 500px;
+		background: radial-gradient(circle, var(--color-rust) 0%, transparent 70%);
+		border-radius: 50%;
+		animation: float-slow 35s infinite ease-in-out reverse;
+	}
+
+	@keyframes float-slow {
+		0%,
+		100% {
+			transform: translate(0, 0) scale(1);
+		}
+		50% {
+			transform: translate(50px, -30px) scale(1.1);
+		}
+	}
+
+	.content-wrapper {
+		position: relative;
 		max-width: 1200px;
 		margin: 0 auto;
-		padding: 0 24px;
-		background: #fbfbfd;
-		min-height: 100vh;
+		padding: 0 var(--space-xl);
+		z-index: 1;
 	}
 
-	/* JSON API Section - Condensed Styles */
-	.json-api-section {
-		margin-bottom: 40px;
-	}
-
+	/* Section Headers */
 	.section-header {
-		margin-bottom: 16px;
-		padding-top: 12px;
-	}
-
-	.section-header h2 {
-		font-size: 24px;
-		font-weight: 700;
-		margin: 0 0 8px 0;
-		color: #1d1d1f;
-		letter-spacing: -0.01em;
+		margin-bottom: var(--space-xl);
 		position: relative;
-		padding-bottom: 6px;
+		padding-left: var(--space-md);
 	}
 
-	.section-header h2::after {
-		content: '';
+	.header-decoration {
 		position: absolute;
-		bottom: 0;
 		left: 0;
-		width: 60px;
-		height: 3px;
-		background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+		top: 50%;
+		transform: translateY(-50%);
+		width: 4px;
+		height: 40px;
+		background: linear-gradient(180deg, var(--color-sage) 0%, var(--color-rust) 100%);
 		border-radius: 2px;
 	}
 
-	.api-card {
-		background: white;
-		border-radius: 12px;
-		padding: 20px;
-		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-		border: 1px solid rgba(0, 0, 0, 0.06);
+	.section-header h2 {
+		font-family: var(--font-serif);
+		font-size: var(--text-3xl);
+		font-weight: 400;
+		margin: 0 0 var(--space-sm) 0;
+		color: var(--color-ink);
+		letter-spacing: -0.02em;
 	}
 
-	.api-note {
-		margin: 0 0 12px 0;
-		color: #4b5563;
-		font-size: 14px;
+	/* Legacy Section */
+	.legacy-section {
+		margin-bottom: var(--space-3xl);
+	}
+
+	.legacy-card {
+		background: var(--color-paper);
+		border: 1px solid rgba(139, 109, 71, 0.1);
+		border-radius: 12px;
+		overflow: hidden;
+		transition: all 0.3s var(--ease-out-expo);
+	}
+
+	.legacy-card:hover {
+		transform: translateY(-2px);
+		box-shadow:
+			0 10px 30px rgba(139, 109, 71, 0.08),
+			0 2px 8px rgba(139, 109, 71, 0.04);
+	}
+
+	.legacy-link {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		padding: var(--space-lg);
+		color: var(--color-charcoal);
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.2s var(--ease-out-expo);
+	}
+
+	.legacy-link:hover {
+		color: var(--color-rust);
+	}
+
+	.legacy-link svg {
+		flex-shrink: 0;
+		stroke: var(--color-sage);
+		transition: all 0.3s var(--ease-out-expo);
+	}
+
+	.legacy-link .arrow {
+		margin-left: auto;
+		opacity: 0.5;
+	}
+
+	.legacy-link:hover .arrow {
+		opacity: 1;
+		transform: translate(2px, -2px);
+	}
+
+	/* API Section */
+	.api-section {
+		margin-bottom: var(--space-3xl);
+	}
+
+	.api-description {
+		margin: 0 0 var(--space-lg) 0;
+		color: var(--color-stone);
+		font-size: var(--text-base);
+		line-height: 1.6;
+	}
+
+	.api-card {
+		background: var(--color-paper);
+		border: 1px solid rgba(139, 109, 71, 0.1);
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 2px 12px rgba(139, 109, 71, 0.04);
+	}
+
+	.api-endpoint {
+		display: flex;
+		align-items: center;
+		gap: var(--space-md);
+		padding: var(--space-lg);
+		background: var(--color-cream);
+		border-bottom: 1px solid rgba(139, 109, 71, 0.1);
+	}
+
+	.method-badge {
+		background: var(--color-sage);
+		color: var(--color-cream);
+		padding: 4px 12px;
+		border-radius: 6px;
+		font-size: var(--text-xs);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
 	}
 
 	.api-url {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		margin-bottom: 16px;
-		padding: 12px;
-		background: #f8fafc;
-		border-radius: 8px;
-		border: 1px solid rgba(0, 0, 0, 0.08);
-	}
-
-	.api-url code {
 		flex: 1;
-		font-family:
-			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-		font-size: 14px;
-		color: #374151;
-		font-weight: 600;
-	}
-
-	.api-url code a {
-		color: #10b981;
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+		color: var(--color-sage-dark);
 		text-decoration: none;
-		transition: color 0.2s ease;
+		word-break: break-all;
 	}
 
-	.api-url code a:hover {
-		color: #059669;
-		text-decoration: underline;
+	.api-url:hover {
+		color: var(--color-rust);
 	}
 
 	.copy-btn {
-		background: #10b981;
-		color: white;
-		border: none;
-		border-radius: 6px;
-		padding: 6px 12px;
-		font-size: 12px;
+		display: flex;
+		align-items: center;
+		gap: var(--space-xs);
+		padding: var(--space-xs) var(--space-sm);
+		background: var(--color-paper);
+		border: 1px solid rgba(139, 109, 71, 0.15);
+		border-radius: 8px;
+		font-size: var(--text-sm);
 		font-weight: 500;
+		color: var(--color-charcoal);
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition: all 0.2s var(--ease-out-expo);
 	}
 
 	.copy-btn:hover {
-		background: #059669;
+		background: var(--color-sage);
+		color: var(--color-cream);
+		border-color: var(--color-sage);
 		transform: translateY(-1px);
 	}
 
 	.api-example {
-		background: #f8fafc;
-		border-radius: 8px;
-		border: 1px solid rgba(0, 0, 0, 0.08);
-		overflow: hidden;
+		padding: 0;
 	}
 
-	.example-section {
-		padding: 12px 16px;
-		background: #10b981;
-		color: white;
-		font-family:
-			'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-		font-size: 13px;
-		font-weight: 500;
-	}
-
-	.api-example pre {
-		background: #1e1e1e;
-		color: #e5e7eb;
-		padding: 16px;
-		margin: 0;
-		font-size: 12px;
-		line-height: 1.4;
-		overflow-x: auto;
-	}
-
-	/* Legacy section specific styles */
-	.presets-section {
-		margin-bottom: 25px;
-	}
-
-	.preset-list {
+	.example-header {
+		padding: var(--space-md) var(--space-lg);
+		background: var(--color-charcoal);
+		color: var(--color-cream);
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
 		display: flex;
-		flex-direction: column;
-		gap: 12px;
+		align-items: center;
+		gap: var(--space-sm);
 	}
 
-	.preset-item {
-		background: white;
-		border-radius: 12px;
-		padding: 20px;
-		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-		border: 1px solid rgba(0, 0, 0, 0.06);
-		transition: all 0.2s ease;
+	.terminal-prompt {
+		color: var(--color-sage);
+		font-weight: 600;
 	}
 
-	.preset-item:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+	.example-header code {
+		color: var(--color-paper);
 	}
 
-	.preset-item a {
-		color: #007aff;
-		text-decoration: none;
-		font-weight: 500;
-	}
-
-	.preset-item a:hover {
-		color: #0056b3;
+	.example-response {
+		background: var(--color-ink);
+		color: var(--color-parchment);
+		padding: var(--space-lg);
+		margin: 0;
+		font-size: var(--text-xs);
+		line-height: 1.6;
+		overflow-x: auto;
+		font-family: var(--font-mono);
 	}
 
 	@media (max-width: 768px) {
-		main {
-			padding: 0 16px;
+		.content-wrapper {
+			padding: 0 var(--space-lg);
 		}
 
-		.api-url {
+		.page-decoration {
+			display: none;
+		}
+
+		.api-endpoint {
 			flex-direction: column;
 			align-items: stretch;
+			gap: var(--space-sm);
 		}
 
 		.copy-btn {
 			align-self: center;
 		}
 
-		.section-header h2 {
-			font-size: 24px;
+		.section-header {
+			padding-left: 0;
+		}
+
+		.header-decoration {
+			display: none;
 		}
 	}
 </style>

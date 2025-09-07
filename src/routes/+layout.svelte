@@ -2,6 +2,7 @@
 	import { SITE_URL } from '$lib/constants'
 	import { Toaster } from 'svelte-french-toast'
 	import MigrationBanner from '$lib/components/MigrationBanner.svelte'
+	import '/src/app.css'
 
 	let { children, data } = $props()
 
@@ -21,13 +22,15 @@
 <MigrationBanner show={data.isOldHost} />
 
 <div class="layout" class:has-migration-banner={data.isOldHost}>
+	<div class="grain-overlay"></div>
+
 	<a
 		target="_blank"
 		href="https://github.com/khromov/llmctx"
 		class="github-corner"
 		aria-label="View source on GitHub"
 	>
-		<svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
+		<svg width="72" height="72" viewBox="0 0 250 250" aria-hidden="true">
 			<path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
 			<path
 				d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2"
@@ -42,25 +45,31 @@
 			></path>
 		</svg>
 	</a>
-	<Toaster position="top-center" />
+
+	<Toaster
+		position="top-center"
+		toastOptions={{
+			style: {
+				background: 'var(--color-paper)',
+				color: 'var(--color-charcoal)',
+				border: '1px solid var(--color-parchment)',
+				borderRadius: '8px',
+				fontSize: 'var(--text-sm)',
+				fontFamily: 'var(--font-sans)'
+			}
+		}}
+	/>
+
 	{@render children?.()}
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		padding: 0;
-		background-color: #fbfbfd;
-		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-		color: #1d1d1f;
-	}
+	@import url('/src/app.css');
 
 	.layout {
 		position: relative;
 		min-height: 100vh;
+		z-index: 0;
 	}
 
 	.layout.has-migration-banner {
@@ -72,11 +81,17 @@
 		top: 0;
 		right: 0;
 		z-index: 1000;
+		opacity: 0.8;
+		transition: opacity 0.3s var(--ease-out-expo);
+	}
+
+	.github-corner:hover {
+		opacity: 1;
 	}
 
 	.github-corner svg {
-		fill: #151513;
-		color: #fff;
+		fill: var(--color-charcoal);
+		color: var(--color-cream);
 		border: 0;
 	}
 
@@ -111,6 +126,10 @@
 	@media (max-width: 768px) {
 		.layout.has-migration-banner {
 			padding-top: 16px;
+		}
+
+		.github-corner {
+			transform: scale(0.9);
 		}
 	}
 </style>
