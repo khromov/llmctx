@@ -60,12 +60,11 @@ Direct access to documentation via URIs:
 	<div class="prompt-header">
 		<div class="prompt-title">
 			<span class="prompt-icon">💡</span>
-			<strong>Recommended System Prompt for MCP Usage</strong>
+			<strong
+				>Setting a system prompt will improve how often your LLM chooses to use the Svelte MCP</strong
+			>
 		</div>
 		<div class="prompt-actions">
-			<button class="prompt-toggle" onclick={() => (promptExpanded = !promptExpanded)}>
-				{promptExpanded ? 'Collapse' : 'Expand'}
-			</button>
 			<button class="prompt-copy" onclick={copySystemPrompt}>
 				<CopyIcon />
 				Copy
@@ -127,23 +126,6 @@ Direct access to documentation via URIs:
 	.prompt-actions {
 		display: flex;
 		gap: 8px;
-	}
-
-	.prompt-toggle {
-		background: #f3f4f6;
-		color: #374151;
-		border: 1px solid rgba(0, 0, 0, 0.08);
-		border-radius: 6px;
-		padding: 6px 12px;
-		font-size: 12px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.prompt-toggle:hover {
-		background: #e5e7eb;
-		transform: translateY(-1px);
 	}
 
 	.prompt-copy {
