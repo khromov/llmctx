@@ -67,6 +67,17 @@ command = "npx"
 args = ["-y", "mcp-remote", "${streamableEndpoint}"]
 `,
 			isConfig: true
+		},{
+			id: 'opencode',
+			name: 'Opencode',
+			icon: '📖',
+			description:'Put this in you opencode.json inside of the "mcp" object.',
+			instruction: `"svelte-llm": {
+"type": "remote",
+"url": "https://svelte-llm.stanislav.garden/mcp/mcp",
+"enabled": true
+}`,
+			isConfig: true
 		},
 		{
 			id: 'others',
