@@ -1,6 +1,6 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-	"name": "io.github.khromov/svelte-llm-mcp",
+	"name": "garden.stanislav.svelte-llm/svelte-llm-mcp",
 	"description": "An MCP server that provides access to Svelte 5 and SvelteKit documentation",
 	"status": "active",
 	"repository": {
