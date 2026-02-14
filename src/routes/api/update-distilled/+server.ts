@@ -155,41 +155,44 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		const results = await anthropic.getBatchResults(batchStatus.results_url)
 
+		const failedResults = results.filter((r) => r.result.type !== 'succeeded')
+		if (failedResults.length > 0) {
+			const failedCount = failedResults.length
+			const failedTypes = failedResults.map((r) => `${r.custom_id}: ${r.result.type}`).join(', ')
+			throw error(
+				500,
+				`Distillation aborted: ${failedCount}/${results.length} files failed (${failedTypes})`
+			)
+		}
+
 		let totalInputTokens = 0
 		let totalOutputTokens = 0
 
-		const processedResults = results
-			.filter((result) => result.result.type === 'succeeded')
-			.map((result) => {
-				const index = parseInt(result.custom_id.split('-')[1])
-				const fileObj = filesToProcess[index]
+		const processedResults = results.map((result) => {
+			const index = parseInt(result.custom_id.split('-')[1])
+			const fileObj = filesToProcess[index]
 
-				if (result.result.type !== 'succeeded' || !result.result.message) {
-					return {
-						index,
-						path: fileObj.path,
-						content: '',
-						error: 'Failed or no message'
-					}
-				}
+			if (result.result.type !== 'succeeded' || !result.result.message) {
+				throw error(500, 'Unexpected non-succeeded result after filtering')
+			}
 
-				const outputContent = result.result.message.content[0].text
+			const outputContent = result.result.message.content[0].text
 
-				if (result.result.message.usage) {
-					totalInputTokens += result.result.message.usage.input_tokens || 0
-					totalOutputTokens += result.result.message.usage.output_tokens || 0
-				}
+			if (result.result.message.usage) {
+				totalInputTokens += result.result.message.usage.input_tokens || 0
+				totalOutputTokens += result.result.message.usage.output_tokens || 0
+			}
 
-				return {
-					index,
-					path: fileObj.path,
-					content: outputContent
-				}
-			})
+			return {
+				index,
+				path: fileObj.path,
+				content: outputContent
+			}
+		})
 
 		processedResults.sort((a, b) => a.index - b.index)
 
-		const successfulResults = processedResults.filter((result) => result.content)
+		const successfulResults = processedResults
 
 		// Split results into Svelte and SvelteKit categories based on the new path structure
 		const svelteResults = successfulResults.filter((result) =>
