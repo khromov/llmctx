@@ -83,7 +83,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			logAlways(`Content minimized according to preset configuration`)
 		}
 
-		const anthropic = new AnthropicProvider('claude-sonnet-4-20250514')
+		const anthropic = new AnthropicProvider('claude-sonnet-4-5-20250929')
 
 		distillationJob = await PresetDbService.createDistillationJob({
 			preset_name: DistillablePreset.SVELTE_COMPLETE_DISTILLED,

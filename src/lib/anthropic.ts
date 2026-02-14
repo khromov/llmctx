@@ -68,7 +68,7 @@ export class AnthropicProvider implements LLMProvider {
 	private baseUrl: string
 	private apiKey: string
 	name = 'Anthropic'
-	private readonly availableModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514']
+	private readonly availableModels = ['claude-sonnet-4-5-20250929']
 
 	constructor(modelId?: string) {
 		const apiKey = env.ANTHROPIC_API_KEY

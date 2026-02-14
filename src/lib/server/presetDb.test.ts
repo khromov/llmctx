@@ -69,7 +69,7 @@ describe('PresetDbService', () => {
 						preset_name: 'test-preset',
 						batch_id: null,
 						status: 'pending',
-						model_used: 'claude-sonnet-4-20250514',
+						model_used: 'claude-sonnet-4-5-20250929',
 						total_files: 10,
 						processed_files: 0,
 						successful_files: 0,
@@ -93,7 +93,7 @@ describe('PresetDbService', () => {
 			const result = await PresetDbService.createDistillationJob({
 				preset_name: 'test-preset',
 				status: 'pending',
-				model_used: 'claude-sonnet-4-20250514',
+				model_used: 'claude-sonnet-4-5-20250929',
 				total_files: 10
 			})
 
